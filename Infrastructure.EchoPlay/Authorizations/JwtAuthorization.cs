@@ -1,20 +1,12 @@
 ﻿using System.Security.Claims;
 using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Interfaces;
+using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authorizations;
 
-public class JwtAuthorization:BaseAuthorization
+public class JwtAuthorization(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : BaseAuthorization(uow, encryption, accessor)
 {
-    private UnitOfWork _uow;
-    private IEncryption _encryption;
-    
-    public JwtAuthorization(UnitOfWork uow,IEncryption encryption) : base(uow,encryption)
-    {
-        _uow = uow;
-        _encryption = encryption;
-    }
-
     public override async Task<string> AuthenticateAsync(User userData)
     {
         await base.AuthenticateAsync(userData);
@@ -22,7 +14,6 @@ public class JwtAuthorization:BaseAuthorization
         {
             new Claim(ClaimTypes.Name, userData.Username),
             new Claim(ClaimTypes.Email, userData.Email),
-            
         };
         return "";
     }

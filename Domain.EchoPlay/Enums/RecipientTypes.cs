@@ -1,6 +1,6 @@
 ﻿namespace Domain.EchoPlay.Enums;
 
-public enum RecipientType
+public enum RecipientTypes
 {
     Phone = 0,
     Email = 1

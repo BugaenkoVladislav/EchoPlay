@@ -1,17 +1,20 @@
 ﻿using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Enums;
 using Domain.EchoPlay.Interfaces;
+using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authorizations;
 
 public class BaseAuthorization:IAuthorization<User>
 {
-    private UnitOfWork _uow;
-    private IEncryption _encryption;
-    public BaseAuthorization(UnitOfWork uow,IEncryption encryption)
+    protected UnitOfWork _uow;
+    protected IEncryption _encryption;
+    protected IHttpContextAccessor _accessor;
+    public BaseAuthorization(UnitOfWork uow,IEncryption encryption,IHttpContextAccessor accessor)
     {
         _uow = uow;
         _encryption = encryption;
+        _accessor = accessor;
     }
     
     public virtual async Task AuthenticateAsync(User userData)
