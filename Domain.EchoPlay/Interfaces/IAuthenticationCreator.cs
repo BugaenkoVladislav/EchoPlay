@@ -3,7 +3,7 @@ using Domain.EchoPlay.Enums;
 
 namespace Domain.EchoPlay.Interfaces;
 
-public interface IAuthorizationCreator
+public interface IAuthenticationCreator
 {
-    IAuthorization<User> CreateAuthorization(AuthType authType);
+    IAuthentication<User> CreateAuthentication(AuthType authType);
 }

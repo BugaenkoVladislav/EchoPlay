@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authorizations;
 
-public class GoogleAuthorization(UnitOfWork uow, IEncryption encryption,IHttpContextAccessor accessor) : BaseAuthorization(uow, encryption,accessor)
+public class GoogleAuthentication(UnitOfWork uow, IEncryption encryption,IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption,accessor)
 {
     public override async Task AuthenticateAsync(User userData)
     {

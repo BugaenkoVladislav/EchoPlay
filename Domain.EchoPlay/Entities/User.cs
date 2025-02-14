@@ -20,5 +20,8 @@ public class User
     [Required]
     public string Email { get; set; }= null!;
     
+    [Required]
+    public bool Is2FA { get; set; }= false;
+    
     public string Phone { get; set; } = null!;
 }

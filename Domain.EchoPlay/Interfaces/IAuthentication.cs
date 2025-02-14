@@ -2,7 +2,7 @@
 
 namespace Domain.EchoPlay.Interfaces;
 
-public interface IAuthorization<in TUserData>
+public interface IAuthentication<in TUserData>
 {
     Task AuthenticateAsync(TUserData userData);
     

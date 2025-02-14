@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authorizations;
 
-public class BaseAuthorization:IAuthorization<User>
+public class BaseAuthentication:IAuthentication<User>
 {
     protected UnitOfWork _uow;
     protected IEncryption _encryption;
     protected IHttpContextAccessor _accessor;
-    public BaseAuthorization(UnitOfWork uow,IEncryption encryption,IHttpContextAccessor accessor)
+    public BaseAuthentication(UnitOfWork uow,IEncryption encryption,IHttpContextAccessor accessor)
     {
         _uow = uow;
         _encryption = encryption;
@@ -25,17 +25,22 @@ public class BaseAuthorization:IAuthorization<User>
             userData.Email = await _encryption.DecryptAsync(userData.Email);
             userData.Username = await _encryption.DecryptAsync(userData.Username);
             userData.Password = await _encryption.DecryptAsync(userData.Password);
-            var user = await _uow.UserRepository.GetEntityFirstOrDefaultAsync(x => x.Username == userData.Username && x.Password == userData.Password);
-            if (user is null)
-                throw new UnauthorizedAccessException();
-            if (user.Phone is not null)
+            var user = await _uow.UserRepository.GetEntityFirstAsync(x => x.Username == userData.Username && x.Password == userData.Password);
+            if (user.Is2FA)
             {
-                //todo SendCodeOnPhone
+                if (user.Phone is not null)
+                {
+                    //todo SendCodeOnPhone
+                }
+                else
+                {
+                    //todo SendCodeOnEmail
+                }
             }
-            else
-            {
-                //todo SendCodeOnEmail
-            }
+        }
+        catch (NullReferenceException)
+        {
+            //когда пользователь пустой
         }
         catch (Exception ex)
         {
@@ -48,7 +53,8 @@ public class BaseAuthorization:IAuthorization<User>
     {
         try
         {
-
+            await AuthenticateAsync(userData);
+            //remove logic 
         }
         catch (Exception ex)
         {

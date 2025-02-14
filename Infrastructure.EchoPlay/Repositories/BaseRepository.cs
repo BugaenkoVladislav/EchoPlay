@@ -10,7 +10,10 @@ public class BaseRepository<TEntity>(DbContext dbContext) : IRepository<TEntity>
     {
         return await dbContext.Set<TEntity>().FirstOrDefaultAsync(expression);
     }
-
+    public virtual async Task<TEntity>GetEntityFirstAsync(Expression<Func<TEntity, bool>> expression)
+    {
+        return await dbContext.Set<TEntity>().FirstAsync(expression);
+    }
     public virtual async Task<List<TEntity>?> GetEntitiesAsync(Expression<Func<TEntity, bool>> expression)
     {
         return await dbContext.Set<TEntity>().Where(expression).ToListAsync();

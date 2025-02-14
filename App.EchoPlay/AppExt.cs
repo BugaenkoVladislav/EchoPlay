@@ -11,7 +11,7 @@ public static class AppExt
     public static void ConfigureServices(this IServiceCollection services, string clientId, string clientSecret, string connectionString)
     {
         //services.AddRepositories();
-        //services.AddServices();
+        services.AddServices();
         services.AddScoped<UnitOfWork>();
         services.AddAuthentication(o =>
             {
@@ -28,6 +28,7 @@ public static class AppExt
             })
             .AddGoogleOpenIdConnect("GoogleScheme",options =>
             {
+                //todo get from appsettings.json
                 options.ClientId = clientId;
                 options.ClientSecret = clientSecret;
             });
@@ -35,7 +36,7 @@ public static class AppExt
         services.AddAuthorization();
         services.AddControllers();
     }
-    public static IServiceCollection AddServices(this IServiceCollection services)
+    private static IServiceCollection AddServices(this IServiceCollection services)
     {
         return services.AddScoped<AuthService>();
     }
