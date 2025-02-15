@@ -4,9 +4,9 @@ namespace Domain.EchoPlay.Interfaces;
 
 public interface IAuthentication<in TUserData>
 {
-    Task AuthenticateAsync(TUserData userData);
+    long GenerateCode();
+    Task IdentifyUser(TUserData userData);
+    Task AuthenticateAsync(TUserData userData,long code);
     
     Task UnauthenticateAsync(TUserData userData);
-    
-    Task<bool> Check2FaAsync(long code);
 }

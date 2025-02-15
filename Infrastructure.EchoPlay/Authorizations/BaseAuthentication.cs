@@ -1,6 +1,7 @@
 ﻿using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Enums;
 using Domain.EchoPlay.Interfaces;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authorizations;
@@ -16,18 +17,18 @@ public class BaseAuthentication:IAuthentication<User>
         _encryption = encryption;
         _accessor = accessor;
     }
-    
-    public virtual async Task AuthenticateAsync(User userData)
+
+    public async Task IdentifyUser(User userData)
     {
         try
         {
-            //ref create
             userData.Email = await _encryption.DecryptAsync(userData.Email);
             userData.Username = await _encryption.DecryptAsync(userData.Username);
             userData.Password = await _encryption.DecryptAsync(userData.Password);
             var user = await _uow.UserRepository.GetEntityFirstAsync(x => x.Username == userData.Username && x.Password == userData.Password);
             if (user.Is2FA)
             {
+                var code = GenerateCode();
                 if (user.Phone is not null)
                 {
                     //todo SendCodeOnPhone
@@ -46,15 +47,18 @@ public class BaseAuthentication:IAuthentication<User>
         {
             
         }
-        
     }
 
-    public async Task UnauthenticateAsync(User userData)
+    public virtual async Task AuthenticateAsync(User userData,long code)
     {
         try
         {
-            await AuthenticateAsync(userData);
-            //remove logic 
+            if (!await Check2FaAsync(code))
+                throw new UnauthorizedAccessException();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            
         }
         catch (Exception ex)
         {
@@ -62,11 +66,22 @@ public class BaseAuthentication:IAuthentication<User>
         }
     }
 
+    public long GenerateCode()
+    {
+        var rnd = new Random();
+        var code = rnd.Next(100000, 999999);
+        return code;
+    }
+
+    public virtual async Task UnauthenticateAsync(User userData)
+    {
+    }
+
     public async Task<bool> Check2FaAsync(long code)
     {
         try
         {
-            //todo if sent code realy - return true
+            //todo if sent code realy - Authenticate
         }
         catch (Exception ex)
         {

@@ -14,8 +14,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain.EchoPlay", "Domain.E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthGrpcService", "AuthGrpcService\AuthGrpcService.csproj", "{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamingGrpcService", "StreamingGrpcService\StreamingGrpcService.csproj", "{72852384-3738-4EB2-B86E-1B4C79D3A5C1}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,10 +36,6 @@ Global
 		{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}.Release|Any CPU.Build.0 = Release|Any CPU
-		{72852384-3738-4EB2-B86E-1B4C79D3A5C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{72852384-3738-4EB2-B86E-1B4C79D3A5C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{72852384-3738-4EB2-B86E-1B4C79D3A5C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{72852384-3738-4EB2-B86E-1B4C79D3A5C1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{005C6EA5-EF71-4F9A-87A3-643893A675B8} = {95849AC8-8DF8-447C-AA51-829E18C7004E}

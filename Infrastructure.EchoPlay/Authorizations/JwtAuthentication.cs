@@ -7,9 +7,9 @@ namespace Infrastructure.EchoPlay.Authorizations;
 
 public class JwtAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption, accessor)
 {
-    public override async Task<string> AuthenticateAsync(User userData)
+    public override async Task<string> AuthenticateAsync(User userData,long code)
     {
-        await base.AuthenticateAsync(userData);
+        await base.AuthenticateAsync(userData,code);
         var claims = new List<Claim>()
         {
             new Claim(ClaimTypes.Name, userData.Username),

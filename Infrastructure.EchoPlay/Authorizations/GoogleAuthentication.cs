@@ -8,12 +8,17 @@ namespace Infrastructure.EchoPlay.Authorizations;
 
 public class GoogleAuthentication(UnitOfWork uow, IEncryption encryption,IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption,accessor)
 {
-    public override async Task AuthenticateAsync(User userData)
+    public override async Task AuthenticateAsync(User userData, long code)
     {
-        await base.AuthenticateAsync(userData);
+        await base.AuthenticateAsync(userData,code);
         await _accessor.HttpContext.ChallengeAsync("GoogleScheme",new AuthenticationProperties()
         {
             RedirectUri = "https://www.google.ru/?hl=ru"
         });
+    }
+
+    public override async Task UnauthenticateAsync(User userData)
+    {
+        await _accessor.HttpContext.SignOutAsync("GoogleScheme");
     }
 }
