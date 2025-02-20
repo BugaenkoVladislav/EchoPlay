@@ -6,17 +6,11 @@ using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authorizations;
 
-public class BaseAuthentication:IAuthentication<User>
+public abstract class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : IAuthentication<User>
 {
-    protected UnitOfWork _uow;
-    protected IEncryption _encryption;
-    protected IHttpContextAccessor _accessor;
-    public BaseAuthentication(UnitOfWork uow,IEncryption encryption,IHttpContextAccessor accessor)
-    {
-        _uow = uow;
-        _encryption = encryption;
-        _accessor = accessor;
-    }
+    protected UnitOfWork _uow = uow;
+    protected IEncryption _encryption = encryption;
+    protected IHttpContextAccessor _accessor = accessor;
 
     public async Task IdentifyUser(User userData)
     {

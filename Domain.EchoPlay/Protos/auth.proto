@@ -1,0 +1,31 @@
+﻿syntax = "proto3";
+service Authenticator{
+  rpc Authenticate (AuthenticateData) returns (Result);
+  rpc Identify(User)returns (Result);
+  rpc Unauthenticate(User) returns(Result);
+}
+message Result{
+  bool isSuccess= 1;
+  int32 code= 2;
+  string desc = 3;
+}
+message User{
+  string username = 1;
+  string password = 2;
+  string email = 3;
+  string phone = 4;
+  
+}
+message Code{
+  int64 code = 1;
+}
+message AuthenticateData{
+  User userData = 1;
+  AuthType authType = 2;
+  Code code = 3;
+}
+enum AuthType{
+  JwtBearer = 0;
+  Cookie = 1;
+  Google = 2;
+}

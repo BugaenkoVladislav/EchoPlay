@@ -14,8 +14,13 @@ public class AuthService(IAuthenticationCreator authenticationCreator)
         await _authentication.AuthenticateAsync(user,code);
     }
 
-    public async Task UnauthenticateAsync(User user, AuthType authType)
+    public async Task UnauthenticateAsync(User user)
     {
         await _authentication.UnauthenticateAsync(user);
+    }
+
+    public async Task IdentifyUserAsync(User user)
+    {
+        await _authentication.IdentifyUser(user);
     }
 }

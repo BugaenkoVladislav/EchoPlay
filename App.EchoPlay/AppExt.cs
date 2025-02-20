@@ -1,6 +1,7 @@
 ﻿using App.EchoPlay.Services;
 using Google.Apis.Auth.AspNetCore3;
 using Infrastructure.EchoPlay;
+using Infrastructure.EchoPlay.Fabrics;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,7 +9,7 @@ namespace App.EchoPlay;
 
 public static class AppExt
 {
-    public static void ConfigureServices(this IServiceCollection services, string clientId, string clientSecret, string connectionString)
+    public static void ConfigureServices(this IServiceCollection services)
     {
         //services.AddRepositories();
         services.AddServices();
@@ -29,15 +30,16 @@ public static class AppExt
             .AddGoogleOpenIdConnect("GoogleScheme",options =>
             {
                 //todo get from appsettings.json
-                options.ClientId = clientId;
-                options.ClientSecret = clientSecret;
+                options.ClientId = "clientId";
+                options.ClientSecret = "clientSecret";
             });
         //services.AddDbContext<MyDbContext>(options => options.UseNpgsql(connectionString));
+        //RolesAuthorization
         services.AddAuthorization();
         services.AddControllers();
     }
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
-        return services.AddScoped<AuthService>();
+        return services.AddScoped<AuthService>().AddScoped<AuthenticationBuilder>();
     }
 }

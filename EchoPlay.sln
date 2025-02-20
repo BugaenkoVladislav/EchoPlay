@@ -12,7 +12,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure.EchoPlay", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain.EchoPlay", "Domain.EchoPlay\Domain.EchoPlay.csproj", "{F653E72B-4C32-41AF-9278-D72FE8AAD3A3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthGrpcService", "AuthGrpcService\AuthGrpcService.csproj", "{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticationGrpcService", "AuthenticationGrpcService\AuthenticationGrpcService.csproj", "{10399605-98B6-41C1-B0D6-E909CC267378}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,10 +32,10 @@ Global
 		{F653E72B-4C32-41AF-9278-D72FE8AAD3A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F653E72B-4C32-41AF-9278-D72FE8AAD3A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F653E72B-4C32-41AF-9278-D72FE8AAD3A3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{62E9BA25-97FB-4B58-91DB-4DC92EA26A82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{10399605-98B6-41C1-B0D6-E909CC267378}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10399605-98B6-41C1-B0D6-E909CC267378}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10399605-98B6-41C1-B0D6-E909CC267378}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10399605-98B6-41C1-B0D6-E909CC267378}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{005C6EA5-EF71-4F9A-87A3-643893A675B8} = {95849AC8-8DF8-447C-AA51-829E18C7004E}

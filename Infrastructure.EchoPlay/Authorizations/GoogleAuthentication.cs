@@ -10,7 +10,6 @@ public class GoogleAuthentication(UnitOfWork uow, IEncryption encryption,IHttpCo
 {
     public override async Task AuthenticateAsync(User userData, long code)
     {
-        await base.AuthenticateAsync(userData,code);
         await _accessor.HttpContext.ChallengeAsync("GoogleScheme",new AuthenticationProperties()
         {
             RedirectUri = "https://www.google.ru/?hl=ru"
