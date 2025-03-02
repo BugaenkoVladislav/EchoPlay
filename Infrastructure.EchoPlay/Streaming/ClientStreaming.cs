@@ -1,16 +1,17 @@
 ﻿using Domain.EchoPlay.Interfaces;
+using Infrastructure.EchoPlay.Streaming.StreamingDtos;
 
 namespace Infrastructure.EchoPlay.Streaming;
 
-public class ClientStreaming:IStreaming
+public class ClientStreaming:IStreaming<MediaFrameDto>
 {
-    public async Task SendFrameAsync()
+    public async Task SendFrameAsync(MediaFrameDto data)
     {
-        
+        throw new NotImplementedException();
     }
 
-    public async Task ReceiveFrameAsync()
+    public async Task<MediaFrameDto> ReceiveFrameAsync()
     {
-        
+        throw new NotImplementedException();
     }
 }

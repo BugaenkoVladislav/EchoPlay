@@ -1,7 +1,7 @@
 ﻿namespace Domain.EchoPlay.Interfaces;
 
-public interface IStreaming
+public interface IStreaming<TData>
 {
-    Task SendFrameAsync();  
-    Task ReceiveFrameAsync();  
+    Task SendFrameAsync(TData data);  
+    Task<TData> ReceiveFrameAsync();  
 }

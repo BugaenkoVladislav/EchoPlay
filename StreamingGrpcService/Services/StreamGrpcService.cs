@@ -1,13 +1,15 @@
-﻿using Grpc.Core;
+﻿using App.EchoPlay.Services;
+using Grpc.Core;
+using Infrastructure.EchoPlay.Streaming;
 
 namespace StreamingGrpcService.Services;
 
-public class StreamGrpcService:Streaming.StreamingBase
+public class StreamGrpcService(StreamingService serverService):Streaming.StreamingBase
 {
+    StreamingService _serverService = serverService;
     public override async Task StreamVideo(IAsyncStreamReader<MediaFrame> requestStream, IServerStreamWriter<MediaFrame> responseStream, ServerCallContext context)
     {
-        //Gets Data From Client
-        
-        //Send Client Other Data
+        //parse data
+        await _serverService.StreamServer();
     }
 }
