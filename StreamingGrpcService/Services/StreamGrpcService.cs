@@ -10,6 +10,6 @@ public class StreamGrpcService(StreamingService serverService):Streaming.Streami
     public override async Task StreamVideo(IAsyncStreamReader<MediaFrame> requestStream, IServerStreamWriter<MediaFrame> responseStream, ServerCallContext context)
     {
         //parse data
-        await _serverService.StreamServer();
+        //await _serverService.StreamServer();
     }
 }
