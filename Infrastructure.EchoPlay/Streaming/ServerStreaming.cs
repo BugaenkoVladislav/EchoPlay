@@ -5,13 +5,15 @@ namespace Infrastructure.EchoPlay.Streaming;
 
 public class ServerStreaming:IStreaming<MediaFrameDto>
 {
-    public async Task SendFrameAsync(MediaFrameDto data)
+    public async Task ReceiveFrameAsync(MediaFrameDto data)
     {
+        //упорядочить по тому от кого пришел фрейм 
         throw new NotImplementedException();
     }
 
-    public async Task<MediaFrameDto> ReceiveFrameAsync()
+    public async Task<MediaFrameDto> ReturnFrameAsync()
     {
+        //отослать всем фреймы
         throw new NotImplementedException();
     }
 }

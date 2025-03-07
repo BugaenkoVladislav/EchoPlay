@@ -2,6 +2,6 @@
 
 public interface IStreaming<TData>
 {
-    Task SendFrameAsync(TData data);  
-    Task<TData> ReceiveFrameAsync();  
+    Task ReceiveFrameAsync(TData data);  
+    Task<TData> ReturnFrameAsync();  
 }

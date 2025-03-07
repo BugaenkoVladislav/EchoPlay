@@ -24,15 +24,16 @@ public class StreamingService
             {
                 await foreach (var chunk in requestStream.ReadAllAsync())
                 {
-                    // await _server.ReceiveFrameAsync();
+                    await _server.ReceiveFrameAsync(chunk);
                 }
             });
             var writeTask = Task.Run(async () =>
             {
-                await responseStream.WriteAsync(new MediaFrameDto()
+                while (!context.CancellationToken.IsCancellationRequested)
                 {
-                    // await _server.SendFrameAsync();
-                });
+                    var frame = await _server.ReturnFrameAsync();
+                    await responseStream.WriteAsync(frame);
+                }
             });
             await Task.WhenAll(readTask, writeTask);
         }
@@ -47,18 +48,19 @@ public class StreamingService
         {
             var readTask = Task.Run(async () =>
             {
-                await foreach (var response in call.ResponseStream.ReadAllAsync())
+                await foreach (var chunk in call.ResponseStream.ReadAllAsync())
                 {
-                    // await _client.ReceiveFrameAsync();
+                    await _client.ReceiveFrameAsync(chunk);
                 }
             });
 
             var writeTask = Task.Run(async () =>
             {
-                await call.RequestStream.WriteAsync(new MediaFrameDto()
+                while (true) 
                 {
-                    // await _client.SendFrameAsync();
-                });
+                    var frame = await _client.ReturnFrameAsync();
+                    await call.RequestStream.WriteAsync(frame);
+                }
             });
             await Task.WhenAll(readTask, writeTask);
         }
