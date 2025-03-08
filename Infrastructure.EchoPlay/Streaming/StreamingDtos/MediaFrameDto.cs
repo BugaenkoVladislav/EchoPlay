@@ -2,8 +2,11 @@
 
 public class MediaFrameDto
 {
-    public VideoDataDto Video { get; set; }
-    public AudioDataDto Audio { get; set; }
-    public Guid SenderId { get; set; }
-    public long Timestamp { get; set; }
+    public byte[] Data { get; set; } 
+    public string Format { get; set; } = string.Empty;       // Формат контейнера
+    public int Width { get; set; } = 0;                     
+    public int Height { get; set; } = 0;                     
+    public int Framerate { get; set; } = 0;                 
+    public int Bitrate { get; set; } = 0;                  
+    public string SenderId { get; set; } = string.Empty;  
 }

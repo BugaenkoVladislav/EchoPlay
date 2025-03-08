@@ -4,20 +4,11 @@ service Streaming{
   rpc StreamVideo(stream MediaFrame) returns (stream MediaFrame);
 }
 message MediaFrame {
-  VideoData video = 1;
-  AudioData audio = 2;
-  string sender_id = 3;
-  int64 timestamp = 4;
-}
-
-message VideoData {
-  bytes frame = 1;
-  int32 width = 2;
-  int32 height = 3;
-}
-
-message AudioData {
-  bytes samples = 1;
-  int32 sample_rate = 2;
-  int32 channels = 3;
+  bytes data = 1;        
+  string format = 2;     // Формат контейнера (например, "mp4", "webm")
+  int32 width = 3;       
+  int32 height = 4;      
+  int32 framerate = 5;   
+  int32 bitrate = 6;
+  string sender_id = 7;
 }

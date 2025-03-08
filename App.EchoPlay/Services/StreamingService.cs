@@ -5,17 +5,9 @@ using Infrastructure.EchoPlay.Streaming.StreamingDtos;
 
 namespace App.EchoPlay.Services;
 
-public class StreamingService
+public class StreamingService(Queue<MediaFrameDto>framesQueue)
 {
-    public StreamingService(ClientStreaming client, ServerStreaming server)
-    {
-        _client = client;
-        _server = server;
-    }
-
-    private readonly IStreaming<MediaFrameDto> _client;
-    private readonly IStreaming<MediaFrameDto> _server;
-
+    private readonly Queue<MediaFrameDto> _framesQueue = framesQueue;
     public async Task StreamServerAsync(IAsyncStreamReader<MediaFrameDto> requestStream, IServerStreamWriter<MediaFrameDto> responseStream, ServerCallContext context)
     {
         try
@@ -24,14 +16,14 @@ public class StreamingService
             {
                 await foreach (var chunk in requestStream.ReadAllAsync())
                 {
-                    await _server.ReceiveFrameAsync(chunk);
+                    _framesQueue.Enqueue(chunk);
                 }
             });
             var writeTask = Task.Run(async () =>
             {
                 while (!context.CancellationToken.IsCancellationRequested)
                 {
-                    var frame = await _server.ReturnFrameAsync();
+                    var frame = _framesQueue.Dequeue();
                     await responseStream.WriteAsync(frame);
                 }
             });
@@ -50,7 +42,7 @@ public class StreamingService
             {
                 await foreach (var chunk in call.ResponseStream.ReadAllAsync())
                 {
-                    await _client.ReceiveFrameAsync(chunk);
+                    //отправляем js этот фрейм
                 }
             });
 
@@ -58,8 +50,7 @@ public class StreamingService
             {
                 while (true) 
                 {
-                    var frame = await _client.ReturnFrameAsync();
-                    await call.RequestStream.WriteAsync(frame);
+                    // получаем с js этот фрейм
                 }
             });
             await Task.WhenAll(readTask, writeTask);
