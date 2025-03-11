@@ -1,10 +1,11 @@
 ﻿using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Enums;
 using Domain.EchoPlay.Interfaces;
+using Infrastructure.EchoPlay;
 using Infrastructure.EchoPlay.Authorizations;
 using Microsoft.AspNetCore.Http;
 
-namespace Infrastructure.EchoPlay.Fabrics;
+namespace App.EchoPlay.Fabrics;
 
 public class AuthenticationBuilder(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : IAuthenticationCreator
 {

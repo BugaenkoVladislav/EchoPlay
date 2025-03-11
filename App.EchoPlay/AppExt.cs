@@ -1,7 +1,7 @@
-﻿using App.EchoPlay.Services;
+﻿using App.EchoPlay.Fabrics;
+using App.EchoPlay.Services;
 using Google.Apis.Auth.AspNetCore3;
 using Infrastructure.EchoPlay;
-using Infrastructure.EchoPlay.Fabrics;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.DependencyInjection;
 
