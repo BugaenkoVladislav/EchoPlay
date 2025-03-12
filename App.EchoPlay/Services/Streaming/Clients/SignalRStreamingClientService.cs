@@ -14,7 +14,7 @@ public class SignalRStreamingClientService:IStreamingClient
     public SignalRStreamingClientService(string hubUrl)
     {
         //todo add url
-        _connection = new HubConnectionBuilder().Build(); ;
+        _connection = new HubConnectionBuilder().Build(); 
     }
     
     
