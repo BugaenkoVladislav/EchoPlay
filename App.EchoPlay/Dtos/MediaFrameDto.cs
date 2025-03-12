@@ -1,4 +1,4 @@
-﻿namespace Infrastructure.EchoPlay.Streaming.StreamingDtos;
+﻿namespace App.EchoPlay.Dtos;
 
 public class MediaFrameDto
 {

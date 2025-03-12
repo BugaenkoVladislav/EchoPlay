@@ -1,7 +1,6 @@
-﻿using Domain.EchoPlay.Interfaces;
+﻿using App.EchoPlay.Dtos;
+using Domain.EchoPlay.Interfaces;
 using Grpc.Core;
-using Infrastructure.EchoPlay.Streaming;
-using Infrastructure.EchoPlay.Streaming.StreamingDtos;
 
 namespace App.EchoPlay.Services;
 
