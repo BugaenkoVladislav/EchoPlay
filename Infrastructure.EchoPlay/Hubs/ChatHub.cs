@@ -5,18 +5,25 @@ namespace Infrastructure.EchoPlay.Hubs;
 
 public class ChatHub:Hub,IChat
 {
+    // логика с репами
     public async Task SendMessage(string message)
     {
         await Clients.All.SendAsync("ReceiveMessage", message);
     }
 
-    public async Task UpdateMessage(Guid messageId, string message)
+    public async Task SendPrivateMessage(string connectionId, string message)
     {
-        throw new NotImplementedException();
+        await Clients.Client(connectionId).SendAsync("ReceivePrivateMessage", message);
     }
 
-    public async Task DeleteMessage(Guid messageId)
+    public async Task UpdateMessage(string messageId, string message)
     {
-        throw new NotImplementedException();
+        //первый параметр айди сообщения второе само сообщение
+        await Clients.All.SendAsync("UpdateMessage", messageId,message);
+    }
+
+    public async Task DeleteMessage(string messageId)
+    {
+        await Clients.All.SendAsync("DeleteMessage", messageId);
     }
 }

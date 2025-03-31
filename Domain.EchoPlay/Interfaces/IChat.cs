@@ -3,6 +3,7 @@
 public interface IChat
 {
     Task SendMessage(string message);
-    Task UpdateMessage(Guid messageId,string message);
-    Task DeleteMessage(Guid messageId);
+    Task SendPrivateMessage(string connectionId,string message);
+    Task UpdateMessage(string messageId,string message);
+    Task DeleteMessage(string messageId);
 }
