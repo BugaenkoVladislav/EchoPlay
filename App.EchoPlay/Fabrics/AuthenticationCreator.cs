@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace App.EchoPlay.Fabrics;
 
-public class AuthenticationBuilder(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : IAuthenticationCreator
+public class AuthenticationCreator(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : IAuthenticationCreator
 {
     public IAuthentication<User> CreateAuthentication(AuthType authType)
     {

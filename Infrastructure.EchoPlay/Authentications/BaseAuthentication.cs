@@ -33,7 +33,7 @@ public abstract class BaseAuthentication(UnitOfWork uow, IEncryption encryption,
                 }
             }
         }
-        catch (NullReferenceException)
+        catch (NullReferenceException ex)
         {
             //когда пользователь пустой
         }
@@ -79,8 +79,8 @@ public abstract class BaseAuthentication(UnitOfWork uow, IEncryption encryption,
         }
         catch (Exception ex)
         {
-            
+            return false;
         }
-        throw new NotImplementedException();
+        return true;
     }
 }
