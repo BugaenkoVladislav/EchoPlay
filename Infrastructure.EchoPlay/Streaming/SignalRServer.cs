@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace App.EchoPlay.Services.Streaming;
 
-public class SignalRServerService(StreamingHub streamingHub):Hub,IStreamingServer
+public class SignalRServer(StreamingHub streamingHub):Hub,IStreamingServer
 {
     private readonly StreamingHub _streamingHub = streamingHub;
     public async Task SendMessageForAllUsers( string userId,byte[] data)
