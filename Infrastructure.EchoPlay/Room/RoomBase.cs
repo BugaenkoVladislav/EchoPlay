@@ -2,8 +2,10 @@
 
 namespace Infrastructure.EchoPlay.Room;
 
-public class RoomBase:IRoom
+public class RoomBase(IStreamingServer streamingServer, IChat chat):IRoom
 {
+    public IStreamingServer StreamingServer { get; set; } = streamingServer;
+    public IChat Chat { get; set; } = chat;
     public async Task CreateRoom()
     {
         var roomId = Guid.NewGuid();
@@ -21,11 +23,6 @@ public class RoomBase:IRoom
     }
 
     public async Task DeleteRoom()
-    {
-        throw new NotImplementedException();
-    }
-
-    public async Task SendMessage(string message)
     {
         throw new NotImplementedException();
     }

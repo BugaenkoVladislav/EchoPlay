@@ -6,5 +6,4 @@ public interface IRoom
     Task JoinRoom(Guid roomId);
     Task LeaveRoom();
     Task DeleteRoom();
-    Task SendMessage(string message);
 }

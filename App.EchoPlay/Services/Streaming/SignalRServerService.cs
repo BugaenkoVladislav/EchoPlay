@@ -1,14 +1,14 @@
-﻿using App.EchoPlay.Dtos;
+﻿using Domain.EchoPlay.Interfaces;
 using Infrastructure.EchoPlay.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
 namespace App.EchoPlay.Services.Streaming;
 
-public class SignalRServerService(StreamingHub streamingHub):Hub
+public class SignalRServerService(StreamingHub streamingHub):Hub,IStreamingServer
 {
     private readonly StreamingHub _streamingHub = streamingHub;
-    public async Task SendMessageForAllUsers(MediaFrameDto frame)
+    public async Task SendMessageForAllUsers( string userId,byte[] data)
     {
-        await _streamingHub.SendMessageForAllUsers(frame.SenderId, frame.Data);
+        await _streamingHub.SendMessageForAllUsers(userId, data);
     }
 }
