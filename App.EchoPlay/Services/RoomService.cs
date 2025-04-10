@@ -3,12 +3,12 @@ using Infrastructure.EchoPlay;
 
 namespace App.EchoPlay.Services;
 
-public class RoomService(UnitOfWork uow,IRoom room)
+public class RoomService(UnitOfWork uow, IRoom room)
 {
     private readonly UnitOfWork _uow = uow;
-    private Dictionary<string,string> _users = new ();
+    private Dictionary<string, string> _users = new();
     private IRoom _room = room;
-    
+
     public async Task JoinRoom()
     {
         await _room.JoinRoom();
