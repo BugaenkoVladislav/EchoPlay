@@ -4,7 +4,7 @@ using Infrastructure.EchoPlay.Hubs;
 
 namespace RoomGrpcService.Services;
 
-public class RoomGrpcService(RoomService roomService):Room.RoomBase
+public class RoomGrpcService(RoomService roomService) : Room.RoomBase
 {
     private readonly ILogger<RoomGrpcService> _logger;
     private RoomService _roomService = roomService;
@@ -12,7 +12,7 @@ public class RoomGrpcService(RoomService roomService):Room.RoomBase
     public override async Task<Result> JoinRoom(RoomURL request, ServerCallContext context)
     {
         try
-        { 
+        {
             await _roomService.JoinRoom();
         }
         catch (Exception ex)
@@ -21,8 +21,9 @@ public class RoomGrpcService(RoomService roomService):Room.RoomBase
             {
                 Code = 400,
                 Desc = ex.Message,
-            }); 
+            });
         }
+
         return await Task.FromResult(new Result()
         {
             Code = 200,
@@ -42,8 +43,9 @@ public class RoomGrpcService(RoomService roomService):Room.RoomBase
             {
                 Code = 400,
                 Desc = ex.Message,
-            }); 
+            });
         }
+
         return await Task.FromResult(new Result()
         {
             Code = 200,
