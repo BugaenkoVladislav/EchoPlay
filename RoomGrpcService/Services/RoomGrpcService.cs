@@ -28,7 +28,6 @@ public class RoomGrpcService(RoomService roomService):Room.RoomBase
             Code = 200,
             Desc = "Success",
         });
-        
     }
 
     public override async Task<Result> LeaveRoom(RoomURL request, ServerCallContext context)
