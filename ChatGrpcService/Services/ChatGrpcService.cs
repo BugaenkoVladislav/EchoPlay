@@ -4,12 +4,12 @@ namespace ChatGrpcService.Services;
 
 public class ChatGrpcService:Chat.ChatBase
 {
-    public override Task<ChatURL> CreateChat(Request request, ServerCallContext context)
+    public override Task<URL> CreateChat(Request request, ServerCallContext context)
     {
         return base.CreateChat(request, context);
     }
 
-    public override Task<Result> DeleteChat(ChatURL request, ServerCallContext context)
+    public override Task<Result> DeleteChat(URL request, ServerCallContext context)
     {
         return base.DeleteChat(request, context);
     }

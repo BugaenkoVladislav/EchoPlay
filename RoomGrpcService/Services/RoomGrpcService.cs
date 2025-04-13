@@ -7,9 +7,9 @@ namespace RoomGrpcService.Services;
 public class RoomGrpcService(RoomService roomService) : Room.RoomBase
 {
     private readonly ILogger<RoomGrpcService> _logger;
-    private RoomService _roomService = roomService;
+    private readonly RoomService _roomService = roomService;
 
-    public override async Task<Result> JoinRoom(RoomURL request, ServerCallContext context)
+    public override async Task<Result> JoinRoom(URL request, ServerCallContext context)
     {
         try
         {
@@ -31,7 +31,7 @@ public class RoomGrpcService(RoomService roomService) : Room.RoomBase
         });
     }
 
-    public override async Task<Result> LeaveRoom(RoomURL request, ServerCallContext context)
+    public override async Task<Result> LeaveRoom(URL request, ServerCallContext context)
     {
         try
         {
