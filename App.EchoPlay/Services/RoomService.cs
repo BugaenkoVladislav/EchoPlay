@@ -4,25 +4,16 @@ using Infrastructure.EchoPlay;
 
 namespace App.EchoPlay.Services;
 
-public class RoomService
+public class RoomService(UnitOfWork uow, IRoom room)
 {
-    private readonly IRoom _room;
-    private readonly UnitOfWork _uow;
+    private readonly IRoom _room = room;
+    private readonly UnitOfWork _uow = uow;
     private Dictionary<string, string> _users = new();
-    public RoomService(UnitOfWork uow, IRoom room, IStreamingServer server, IChat chat)
-    {
-        _room = room;
-        _uow = uow;
-        using var channel = GrpcChannel.ForAddress("https://localhost:7042");
-        //var client = new Greeter.GreeterClient(channel);
-    }
-    
-    
-
+    private readonly GrpcChannel _chatChannel;
+    private readonly GrpcChannel _streamingChannel;
     public async Task JoinRoom()
     {
         await _room.JoinRoom();
-        
         //_users.Add(,_userName);
     }
 
