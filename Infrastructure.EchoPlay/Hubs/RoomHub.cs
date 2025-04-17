@@ -17,7 +17,7 @@ public class RoomHub(string roomName):Hub,IRoom
     public async Task LeaveRoom()
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, _roomName);
-        await Clients.Group(_roomName).SendAsync("Notify", $"{Context.ConnectionId} вошёл в комнату {_roomName}.");
+        await Clients.Group(_roomName).SendAsync("Notify", $"{Context.ConnectionId} вышел комнату {_roomName}.");
     }
     
 }

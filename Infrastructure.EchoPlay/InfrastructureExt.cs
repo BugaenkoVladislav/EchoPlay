@@ -1,6 +1,13 @@
-﻿namespace Infrastructure.EchoPlay;
+﻿using Infrastructure.EchoPlay.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 
-public class InfrastructureExt
+namespace Infrastructure.EchoPlay;
+
+public static class InfrastructureExt
 {
-    
+    public static void AddRepos(this IServiceCollection services)
+    {
+        services.AddScoped<UserRepository>();
+        services.AddScoped<MessageRepository>();
+    }
 }

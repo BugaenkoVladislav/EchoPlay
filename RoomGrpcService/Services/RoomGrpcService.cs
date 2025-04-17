@@ -5,18 +5,16 @@ using Infrastructure.EchoPlay.Hubs;
 
 namespace RoomGrpcService.Services;
 
-public class RoomGrpcService(RoomService roomService,GrpcChannel chatChannel,GrpcChannel streamingChannel) : Room.RoomBase
+public class RoomGrpcService(RoomService roomService,GrpcChannel chatChannel) : Room.RoomBase
 {
     private readonly ILogger<RoomGrpcService> _logger;
     private readonly RoomService _roomService = roomService;
     private readonly GrpcChannel _chatChannel = chatChannel;
-    private readonly GrpcChannel _streamingChannel = streamingChannel;
     public override async Task<Result> JoinRoom(URL request, ServerCallContext context)
     {
         try
         {
-            await _roomService.JoinRoom();
-            var chatClient= new Chat.ChatClient(_chatChannel);
+            await _roomService.JoinRoom(request.URL_);
             //var streamingClient = new 
         }
         catch (Exception ex)
@@ -39,7 +37,7 @@ public class RoomGrpcService(RoomService roomService,GrpcChannel chatChannel,Grp
     {
         try
         {
-            await _roomService.LeaveRoom();
+            await _roomService.LeaveRoom(request.URL_);
         }
         catch (Exception ex)
         {

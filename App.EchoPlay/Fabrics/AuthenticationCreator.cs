@@ -10,6 +10,7 @@ namespace App.EchoPlay.Fabrics;
 
 public class AuthenticationCreator(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : ICreator<IAuthentication<User>,AuthType>
 {
+    public string URL { get; set; }
     public IAuthentication<User> Create(AuthType type)
     {
         return type switch

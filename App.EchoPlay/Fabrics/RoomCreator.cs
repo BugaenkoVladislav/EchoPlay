@@ -4,14 +4,15 @@ using Infrastructure.EchoPlay.Hubs;
 
 namespace App.EchoPlay.Fabrics;
 
-public class StreamingCreator:ICreator<IStreamingServer,StreamingType>
+public class RoomCreator:ICreator<IRoom,RoomTypes>
 {
     public string URL { get; set; }
-    public IStreamingServer Create(StreamingType type)
-    {
+
+    public IRoom Create(RoomTypes type)
+    { 
         return type switch
         {
-            StreamingType.SignalR => new StreamingHub(URL),
+            RoomTypes.SignalR => new RoomHub(URL),
             //other types
             _ => throw new ArgumentException($"Invalid streaming type: {type}")
         };
