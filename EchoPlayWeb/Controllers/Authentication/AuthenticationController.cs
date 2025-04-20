@@ -1,12 +1,13 @@
+using App.EchoPlay.Services;
 using EchoPlayWeb.Models;
-using Grpc.Net.Client;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EchoPlayWeb.Controllers.Authentication;
 
-public class AuthenticationController : Controller
+public class AuthenticationController(AuthService authService) : Controller
 {
-    // GET
+    private readonly AuthService _authService = authService;
+
     [HttpGet]
     public IActionResult Index()
     {
@@ -14,21 +15,51 @@ public class AuthenticationController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Index(LoginPasswordModel model)
+    public async Task Identify(LoginPasswordModel model)
     {
-        var httpHandler = new HttpClientHandler {
-            ServerCertificateCustomValidationCallback = 
-                (message, cert, chain, errors) => true // Принимаем любой сертификат
-        };
-        var authChannel = GrpcChannel.ForAddress("https://localhost:7255", new GrpcChannelOptions {
-            HttpHandler = httpHandler
-        });
-        var auth = new Authenticator.AuthenticatorClient(authChannel);
-        var result = await auth.IdentifyAsync(new User()
+        await _authService.IdentifyUserAsync(new Domain.EchoPlay.Entities.User()
         {
             Email = model.Login,
             Password = model.Password
         });
-        return new JsonResult(result);
+        //await _authService.AuthenticateAsync(,Domain.EchoPlay.Enums.AuthType.Cookie,);
     }
+
+    #region GoogleAuth
+
+    [HttpPost]
+    public async Task LoginGoogle()
+    {
+        await _authService.AuthenticateAsync(new Domain.EchoPlay.Entities.User(),
+            Domain.EchoPlay.Enums.AuthType.Google, 0);
+    }
+
+    [HttpPost]
+    public async Task LogoutGoogle()
+    {
+        await _authService.UnauthenticateAsync(new Domain.EchoPlay.Entities.User());
+    }
+
+    #endregion
+
+    #region CookieAuth
+
+    [HttpPost]
+    public async Task LoginCookie(LoginPasswordModel model, long code = 0)
+    {
+        await _authService.AuthenticateAsync(new Domain.EchoPlay.Entities.User()
+        {
+            Email = model.Login,
+            Password = model.Password
+        }, Domain.EchoPlay.Enums.AuthType.Cookie, code);
+    }
+
+    [HttpPost]
+    public async Task LogoutCookie(LoginPasswordModel model)
+    {
+        await _authService.UnauthenticateAsync(new Domain.EchoPlay.Entities.User()
+            { Email = model.Login, Password = model.Password });
+    }
+
+    #endregion
 }

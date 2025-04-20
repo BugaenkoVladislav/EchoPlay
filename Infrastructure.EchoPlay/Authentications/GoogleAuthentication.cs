@@ -12,7 +12,7 @@ public class GoogleAuthentication(UnitOfWork uow, IEncryption encryption,IHttpCo
     {
         await _accessor.HttpContext.ChallengeAsync("GoogleScheme",new AuthenticationProperties()
         {
-            RedirectUri = "https://www.google.ru/?hl=ru"
+            RedirectUri = "https://localhost:7223/"
         });
     }
 

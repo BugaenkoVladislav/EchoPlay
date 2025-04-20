@@ -12,8 +12,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.EchoPlay", "App.EchoPla
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure.EchoPlay", "Infrastructure.EchoPlay\Infrastructure.EchoPlay.csproj", "{A36376D3-C32A-44DC-86CA-D70477A8DF99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthenticationGrpcService", "AuthenticationGrpcService\AuthenticationGrpcService.csproj", "{D9193EEE-497D-49C9-B1CA-5C9E62A9B4EB}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoomGrpcService", "RoomGrpcService\RoomGrpcService.csproj", "{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatGrpcService", "ChatGrpcService\ChatGrpcService.csproj", "{5900F287-252F-4F84-8A51-DF59A22DA6C9}"
@@ -45,10 +43,6 @@ Global
 		{A36376D3-C32A-44DC-86CA-D70477A8DF99}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A36376D3-C32A-44DC-86CA-D70477A8DF99}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A36376D3-C32A-44DC-86CA-D70477A8DF99}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D9193EEE-497D-49C9-B1CA-5C9E62A9B4EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D9193EEE-497D-49C9-B1CA-5C9E62A9B4EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D9193EEE-497D-49C9-B1CA-5C9E62A9B4EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D9193EEE-497D-49C9-B1CA-5C9E62A9B4EB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}.Release|Any CPU.ActiveCfg = Release|Any CPU

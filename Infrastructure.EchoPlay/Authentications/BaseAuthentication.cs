@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authentications;
 
-public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : IAuthentication<User>
+public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor)
+    : IAuthentication<User>
 {
     protected UnitOfWork _uow = uow;
     protected IEncryption _encryption = encryption;
@@ -21,25 +22,23 @@ public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpCon
     {
         try
         {
-            userData.Email = await _encryption.DecryptAsync(userData.Email);
-            userData.Username = await _encryption.DecryptAsync(userData.Username);
-            userData.Password = await _encryption.DecryptAsync(userData.Password);
+            //userData.Email = await _encryption.DecryptAsync(userData.Email);
+            //userData.Username = await _encryption.DecryptAsync(userData.Username);
+            //userData.Password = await _encryption.DecryptAsync(userData.Password);
             var user = await _uow.UserRepository.GetEntityFirstAsync(x =>
                 x.Username == userData.Username && x.Password == userData.Password);
-            if (user.Is2FA)
+
+            var code = GenerateCode();
+            if (user.Phone is not null)
             {
-                var code = GenerateCode();
-                if (user.Phone is not null)
-                {
-                    //todo SendCodeOnPhone
-                }
-                else
-                {
-                    //todo SendCodeOnEmail
-                }
+                //todo SendCodeOnPhone
+            }
+            else
+            {
+                //todo SendCodeOnEmail
             }
         }
-        catch (NullReferenceException ex)
+        catch (InvalidOperationException ex)
         {
             //когда пользователь пустой
         }
@@ -52,7 +51,7 @@ public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpCon
     {
         try
         {
-            if (!await Check2FaAsync(code))
+            if (!await Check2FaAsync(userData, code))
                 throw new UnauthorizedAccessException();
         }
         catch (UnauthorizedAccessException ex)
@@ -68,17 +67,16 @@ public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpCon
     {
     }
 
-    public async Task<bool> Check2FaAsync(long code)
+    public async Task<bool> Check2FaAsync(User userData, long code)
     {
         try
         {
             //todo if sent code realy - Authenticate
+            return false;
         }
         catch (Exception ex)
         {
             return false;
         }
-
-        return true;
     }
 }
