@@ -1,13 +1,12 @@
 ﻿using System.Security.Claims;
 using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Interfaces;
-using Infrastructure.EchoPlay.Authorizations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authentications;
 
-public class CookieAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption, accessor)
+public class CookieAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption, accessor), IAuthentication<User>
 {
     public override async Task AuthenticateAsync(User userData,long code)
     {

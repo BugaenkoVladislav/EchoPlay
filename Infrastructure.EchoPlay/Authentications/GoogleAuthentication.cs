@@ -1,13 +1,12 @@
 ﻿using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Interfaces;
 using Google.Apis.Auth.AspNetCore3;
-using Infrastructure.EchoPlay.Authorizations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authentications;
 
-public class GoogleAuthentication(UnitOfWork uow, IEncryption encryption,IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption,accessor)
+public class GoogleAuthentication(UnitOfWork uow, IEncryption encryption,IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption,accessor), IAuthentication<User>
 {
     public override async Task AuthenticateAsync(User userData, long code)
     {

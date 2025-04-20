@@ -3,7 +3,6 @@ using Domain.EchoPlay.Enums;
 using Domain.EchoPlay.Interfaces;
 using Infrastructure.EchoPlay;
 using Infrastructure.EchoPlay.Authentications;
-using Infrastructure.EchoPlay.Authorizations;
 using Microsoft.AspNetCore.Http;
 
 namespace App.EchoPlay.Fabrics;

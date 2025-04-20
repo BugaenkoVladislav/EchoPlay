@@ -2,13 +2,20 @@
 using Domain.EchoPlay.Interfaces;
 using Microsoft.AspNetCore.Http;
 
-namespace Infrastructure.EchoPlay.Authorizations;
+namespace Infrastructure.EchoPlay.Authentications;
 
-public abstract class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : IAuthentication<User>
+public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : IAuthentication<User>
 {
     protected UnitOfWork _uow = uow;
     protected IEncryption _encryption = encryption;
     protected IHttpContextAccessor _accessor = accessor;
+
+    public long GenerateCode()
+    {
+        var rnd = new Random();
+        var code = rnd.Next(100000, 999999);
+        return code;
+    }
 
     public async Task IdentifyUser(User userData)
     {
@@ -17,7 +24,8 @@ public abstract class BaseAuthentication(UnitOfWork uow, IEncryption encryption,
             userData.Email = await _encryption.DecryptAsync(userData.Email);
             userData.Username = await _encryption.DecryptAsync(userData.Username);
             userData.Password = await _encryption.DecryptAsync(userData.Password);
-            var user = await _uow.UserRepository.GetEntityFirstAsync(x => x.Username == userData.Username && x.Password == userData.Password);
+            var user = await _uow.UserRepository.GetEntityFirstAsync(x =>
+                x.Username == userData.Username && x.Password == userData.Password);
             if (user.Is2FA)
             {
                 var code = GenerateCode();
@@ -37,11 +45,10 @@ public abstract class BaseAuthentication(UnitOfWork uow, IEncryption encryption,
         }
         catch (Exception ex)
         {
-            
         }
     }
 
-    public virtual async Task AuthenticateAsync(User userData,long code)
+    public virtual async Task AuthenticateAsync(User userData, long code)
     {
         try
         {
@@ -50,20 +57,12 @@ public abstract class BaseAuthentication(UnitOfWork uow, IEncryption encryption,
         }
         catch (UnauthorizedAccessException ex)
         {
-            
         }
         catch (Exception ex)
         {
-            
         }
     }
 
-    public long GenerateCode()
-    {
-        var rnd = new Random();
-        var code = rnd.Next(100000, 999999);
-        return code;
-    }
 
     public virtual async Task UnauthenticateAsync(User userData)
     {
@@ -79,6 +78,7 @@ public abstract class BaseAuthentication(UnitOfWork uow, IEncryption encryption,
         {
             return false;
         }
+
         return true;
     }
 }
