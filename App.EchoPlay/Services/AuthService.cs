@@ -2,6 +2,7 @@
 using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Enums;
 using Domain.EchoPlay.Interfaces;
+using Infrastructure.EchoPlay;
 
 namespace App.EchoPlay.Services;
 

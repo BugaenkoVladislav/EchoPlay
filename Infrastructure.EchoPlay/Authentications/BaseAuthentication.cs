@@ -3,7 +3,7 @@ using Domain.EchoPlay.Interfaces;
 using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authentications;
-
+//todo реструктурировать чтобы UOW находился в сервисе а не в реализации и тогда BaseAuth вообще не будет нужен
 public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor)
     : IAuthentication<User>
 {
@@ -37,6 +37,7 @@ public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpCon
             {
                 //todo SendCodeOnEmail
             }
+            //add code to db
         }
         catch (InvalidOperationException ex)
         {

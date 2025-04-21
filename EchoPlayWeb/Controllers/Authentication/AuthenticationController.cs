@@ -1,3 +1,4 @@
+using System.Text.Json;
 using App.EchoPlay.Services;
 using EchoPlayWeb.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -9,20 +10,39 @@ public class AuthenticationController(AuthService authService) : Controller
     private readonly AuthService _authService = authService;
 
     [HttpGet]
-    public IActionResult Index()
+    public IActionResult SignIn()
+    {
+        return View();
+    }
+    [HttpGet]
+    public IActionResult SignUp()
+    {
+        return View();
+    }
+
+    [HttpGet]
+    public IActionResult TwoFactorAuth()
     {
         return View();
     }
 
     [HttpPost]
-    public async Task Identify(LoginPasswordModel model)
+    public async Task<ActionResult> Identify(LoginPasswordViewModel model)
     {
-        await _authService.IdentifyUserAsync(new Domain.EchoPlay.Entities.User()
+        try
         {
-            Email = model.Login,
-            Password = model.Password
-        });
-        //await _authService.AuthenticateAsync(,Domain.EchoPlay.Enums.AuthType.Cookie,);
+            await _authService.IdentifyUserAsync(new Domain.EchoPlay.Entities.User()
+            {
+                Email = model.Email,
+                Password = model.Password
+            });
+            TempData["LoginModel"] = JsonSerializer.Serialize(model);
+            return RedirectToAction("TwoFactorAuth", "Authentication");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     #region GoogleAuth
@@ -45,20 +65,20 @@ public class AuthenticationController(AuthService authService) : Controller
     #region CookieAuth
 
     [HttpPost]
-    public async Task LoginCookie(LoginPasswordModel model, long code = 0)
+    public async Task LoginCookie(LoginPasswordViewModel model, long code = 0)
     {
         await _authService.AuthenticateAsync(new Domain.EchoPlay.Entities.User()
         {
-            Email = model.Login,
+            Email = model.Email,
             Password = model.Password
         }, Domain.EchoPlay.Enums.AuthType.Cookie, code);
     }
 
     [HttpPost]
-    public async Task LogoutCookie(LoginPasswordModel model)
+    public async Task LogoutCookie(LoginPasswordViewModel model)
     {
         await _authService.UnauthenticateAsync(new Domain.EchoPlay.Entities.User()
-            { Email = model.Login, Password = model.Password });
+            { Email = model.Email, Password = model.Password });
     }
 
     #endregion

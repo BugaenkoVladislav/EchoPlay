@@ -5,9 +5,9 @@
     Layout = "_Layout";
 }
 <h2>SignIn</h2>
-<form method="post">
+<form asp-controller="Authentication" asp-action="Identify" method="post">
     <h4>Login</h4>
-    <input type="email" name="Login"/>
+    <input type="email" name="Email"/>
     <h4>Password</h4>
     <input type="password" name="Password"/>
     <input type="submit" value="Enter"/>
@@ -15,4 +15,4 @@
 <form asp-controller="Authentication" asp-action="LoginGoogle" method="post">
     <input type="submit" value="Google" />
 </form>
-<a href="http://localhost:8080">SignUp</a>
+<a asp-controller="Authentication" asp-action="SignUp">SignUp</a>

@@ -1,7 +1,7 @@
 namespace EchoPlayWeb.Models;
 
-public class LoginPasswordModel
+public class LoginPasswordViewModel
 {
-    public string Login { get; set; }
+    public string Email { get; set; }
     public string Password { get; set; }
 }
