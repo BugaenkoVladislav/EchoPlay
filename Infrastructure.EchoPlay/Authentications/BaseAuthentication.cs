@@ -73,7 +73,8 @@ public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpCon
         try
         {
             //todo if sent code realy - Authenticate
-            return false;
+            //return false;
+            return true;
         }
         catch (Exception ex)
         {

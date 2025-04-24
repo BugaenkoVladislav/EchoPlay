@@ -3,14 +3,14 @@ using App.EchoPlay.Services;
 using EchoPlayWeb.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EchoPlayWeb.Controllers.Authentication;
+namespace EchoPlayWeb.Controllers.Account;
 
-public class AuthenticationController(AuthService authService) : Controller
+public class AccountController(AuthService authService) : Controller
 {
     private readonly AuthService _authService = authService;
 
     [HttpGet]
-    public IActionResult SignIn()
+    public IActionResult Login()
     {
         return View();
     }
@@ -37,7 +37,7 @@ public class AuthenticationController(AuthService authService) : Controller
                 Password = model.Password
             });
             TempData["LoginModel"] = JsonSerializer.Serialize(model);
-            return RedirectToAction("TwoFactorAuth", "Authentication");
+            return RedirectToAction("TwoFactorAuth", "Account");
         }
         catch (Exception ex)
         {

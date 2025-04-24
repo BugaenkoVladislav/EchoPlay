@@ -20,6 +20,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamingGrpcService", "Str
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EchoPlayWeb", "EchoPlayWeb\EchoPlayWeb.csproj", "{AB9D9DF9-9CA0-4AA3-9350-BC8D7CD11C5C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EchoPlayApi", "EchoPlayApi\EchoPlayApi.csproj", "{2898AB9C-DEDB-4A50-A7A3-E7E46B54A221}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataBaseGrpcService", "DataBaseGrpcService\DataBaseGrpcService.csproj", "{21E279E6-A21C-4E54-B75E-C3299BD993BB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,5 +63,13 @@ Global
 		{AB9D9DF9-9CA0-4AA3-9350-BC8D7CD11C5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB9D9DF9-9CA0-4AA3-9350-BC8D7CD11C5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB9D9DF9-9CA0-4AA3-9350-BC8D7CD11C5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2898AB9C-DEDB-4A50-A7A3-E7E46B54A221}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2898AB9C-DEDB-4A50-A7A3-E7E46B54A221}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2898AB9C-DEDB-4A50-A7A3-E7E46B54A221}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2898AB9C-DEDB-4A50-A7A3-E7E46B54A221}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21E279E6-A21C-4E54-B75E-C3299BD993BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21E279E6-A21C-4E54-B75E-C3299BD993BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21E279E6-A21C-4E54-B75E-C3299BD993BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21E279E6-A21C-4E54-B75E-C3299BD993BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

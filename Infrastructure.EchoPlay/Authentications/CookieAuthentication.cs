@@ -11,8 +11,8 @@ public class CookieAuthentication(UnitOfWork uow, IEncryption encryption, IHttpC
     public override async Task AuthenticateAsync(User userData,long code)
     {
         await base.AuthenticateAsync(userData,code);
-        var claims = new List<Claim> { new (ClaimTypes.Name, userData.Username) };
-        var claimsIdentity = new ClaimsIdentity(claims);
+        var claims = new List<Claim> { new (ClaimTypes.Email, userData.Email) };
+        var claimsIdentity = new ClaimsIdentity(claims, "CookieAuth");
         await _accessor.HttpContext.SignInAsync("CookieScheme", new ClaimsPrincipal(claimsIdentity));
     }
 
