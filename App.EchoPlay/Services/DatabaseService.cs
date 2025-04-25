@@ -1,44 +1,39 @@
-using App.EchoPlay.Fabrics;
-using Domain.EchoPlay.Entities;
-using Domain.EchoPlay.Enums;
-using Domain.EchoPlay.Interfaces;
+using System.Linq.Expressions;
 using Infrastructure.EchoPlay;
-using Infrastructure.EchoPlay.Repositories;
 
 namespace App.EchoPlay.Services;
-//todo дописчать этот метод
-public class DatabaseService
+
+public class DatabaseService(UnitOfWork uow, MyDbContext dbContext)
 {
-    private readonly UnitOfWork _uow;
-    private readonly MyDbContext _dbContext;
-    public DatabaseService(UnitOfWork uow, MyDbContext dbContext)
+    private readonly MyDbContext _dbContext = dbContext;
+
+    public async Task<List<TEntity>?> GetValuesAsync<TEntity>(Expression<Func<TEntity, bool>> expression)
     {
-        _uow = uow;
-        _dbContext = dbContext;
+        var repository = uow.GetRepoByEntity<TEntity>();
+        return await repository.GetEntitiesAsync(expression);
     }
 
-    // public async Task<List<TEntity>> GetDataAsync<TEntity>()
-    // {
-    //     
-    // }
-    //
-    // public async Task<Domain.EchoPlay.Entities.User> GetDataAsync(Guid userId)
-    // {
-    //     
-    // }
-    public async Task AddDataAsync(Domain.EchoPlay.Entities.User userId)
+    public async Task<TEntity> GetDataAsync<TEntity>(Expression<Func<TEntity, bool>> expression)
     {
-        
+        var repository = uow.GetRepoByEntity<TEntity>();
+        return await repository.GetEntityFirstAsync(expression);
     }
-    
-    public async Task UpdateDataAsync(Guid userId ,Domain.EchoPlay.Entities.User user)
+
+    public async Task AddDataAsync<TEntity>(TEntity entity)
     {
-        
+        var repository = uow.GetRepoByEntity<TEntity>();
+        await repository.AddNewEntityAsync(entity);
     }
-    
-    public async Task DeleteDataAsync(Guid userId)
+
+    public async Task UpdateDataAsync<TEntity>(TEntity entity, Expression<Func<TEntity, bool>> expression)
     {
-        
+        var repository = uow.GetRepoByEntity<TEntity>();
+        await repository.UpdateEntityFromExpressionAsync(entity, expression);
     }
-    
+
+    public async Task DeleteDataAsync<TEntity>(TEntity entity)
+    {
+        var repository = uow.GetRepoByEntity<TEntity>();
+        await repository.DeleteEntityAsync(entity);
+    }
 }
