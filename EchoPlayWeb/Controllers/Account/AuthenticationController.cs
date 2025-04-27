@@ -8,9 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EchoPlayWeb.Controllers.Account;
 
-public class AccountController(HttpClient authHttpClient) : Controller
+public class AccountController(IHttpClientFactory httpClientFactory) : Controller
 {
-    private readonly HttpClient _authHttpClient = authHttpClient;
+    private readonly HttpClient _authHttpClient = httpClientFactory.CreateClient("AuthApi");
 
     [HttpGet]
     public IActionResult Login() => View();
@@ -28,17 +28,16 @@ public class AccountController(HttpClient authHttpClient) : Controller
         {
             var authDto = new AuthDto
             {
-                UserData = new User
+                UserData = new LoginPasswordDto
                 {
                     Email = model.Email,
                     Password = model.Password
                 }
             };
-
-            var response = await _authHttpClient.PostAsJsonAsync(
-                "api/Authentication/identify",
-                authDto);
-
+            var requestUri = new Uri(_authHttpClient.BaseAddress, "api/Authentication/identify");
+            
+            Console.WriteLine($"Request URI: {requestUri}");
+            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/identify", authDto);
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception(await response.Content.ReadAsStringAsync());
@@ -54,46 +53,6 @@ public class AccountController(HttpClient authHttpClient) : Controller
         }
     }
 
-    #region GoogleAuth
-
-    [HttpPost]
-    public async Task<IActionResult> LoginGoogle()
-    {
-        try
-        {
-            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/authenticate", new AuthDto());
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception(await response.Content.ReadAsStringAsync());
-            }
-            return RedirectToAction("Index", "Home");
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> LogoutGoogle()
-    {
-        try
-        {
-            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/unauthenticate", new AuthDto());
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception(await response.Content.ReadAsStringAsync());
-            }
-            return RedirectToAction("Login");
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
-    #endregion
-
     #region CookieAuth
 
     [HttpPost]
@@ -103,11 +62,12 @@ public class AccountController(HttpClient authHttpClient) : Controller
         {
             var authDto = new AuthDto
             {
-                UserData = new User
+                UserData = new LoginPasswordDto()
                 {
                     Email = model.Email,
                     Password = model.Password
-                },
+                }, 
+                AuthType = AuthType.Cookie,
                 Code = code
             };
             var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/authenticate", authDto);
@@ -132,7 +92,7 @@ public class AccountController(HttpClient authHttpClient) : Controller
         {
             var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/unauthenticate", new AuthDto()
             {
-                UserData = new User()
+                UserData = new LoginPasswordDto()
                 {
                     Email = model.Email,
                     Password = model.Password

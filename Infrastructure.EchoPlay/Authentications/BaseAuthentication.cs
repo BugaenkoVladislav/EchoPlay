@@ -26,7 +26,7 @@ public class BaseAuthentication(UnitOfWork uow, IEncryption encryption, IHttpCon
             //userData.Username = await _encryption.DecryptAsync(userData.Username);
             //userData.Password = await _encryption.DecryptAsync(userData.Password);
             var user = await _uow.UserRepository.GetEntityFirstAsync(x =>
-                x.Username == userData.Username && x.Password == userData.Password);
+                x.Email == userData.Email && x.Password == userData.Password);
 
             var code = GenerateCode();
             if (user.Phone is not null)

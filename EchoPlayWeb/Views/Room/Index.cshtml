@@ -1,8 +1,115 @@
-@model dynamic
-
 @{
-    ViewBag.Title = "title";
-    Layout = "_Layout";
+    ViewData["Title"] = "Комната";
+    string roomName = "testRoom"; // Можно потом передавать из контроллера
 }
 
-<h2>title</h2>
+<h2>Чат в комнате: @roomName</h2>
+
+<!-- Блок для уведомлений -->
+<div id="notifyBox" style="color: darkgreen; margin-bottom: 10px;"></div>
+
+<!-- Блок для чата -->
+<div id="chatWindow" style="border: 1px solid #aaa; height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+
+<!-- Поле для ввода сообщения -->
+<input type="text" id="chatMessage" placeholder="Сообщение" />
+<button onclick="sendMessage()">Отправить</button>
+
+<hr>
+
+<h2>Видео трансляция</h2>
+<button onclick="startStreaming()">Начать стрим</button>
+
+<!-- Видео элемент для отображения видеопотока -->
+<video id="videoElement" autoplay muted style="width: 400px; height: 300px; border: 1px solid black;"></video>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        const roomName = "@roomName"; // Имя комнаты
+        const userId = crypto.randomUUID(); // Идентификатор пользователя
+
+        // Создаем соединение для чата и видеопотока
+        const roomHub = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:5219/roomHub")  // Используем HTTPS
+            .build();
+
+        const chatHub = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:5219/chatHub") // Используем HTTPS
+            .build();
+
+        const streamHub = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:5219/streamingHub") // Используем HTTPS
+            .build();
+
+        // Обработчики для хабов
+
+        // Уведомления для RoomHub (вход/выход)
+        roomHub.on("Notify", (msg) => {
+            document.getElementById("notifyBox").innerText = msg;
+        });
+
+        // Получение сообщений чата
+        chatHub.on("ReceiveMessage", (msg) => {
+            document.getElementById("chatWindow").innerHTML += `<div>${msg}</div>`;
+        });
+
+        // Получение видеопотока
+        streamHub.on("ReceiveFrameForAllUsers", (senderId, data) => {
+            if (senderId === userId) return; // Не показываем свой стрим
+            const blob = new Blob([new Uint8Array(data)], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+            const video = document.getElementById("videoElement");
+            video.src = url;
+        });
+
+        // Отправка сообщения в чат
+        async function sendMessage() {
+            const message = document.getElementById("chatMessage").value;
+            if (message) {
+                await chatHub.invoke("SendMessage", roomName, message);
+                document.getElementById("chatMessage").value = ""; // Очистить поле ввода
+            }
+        }
+
+        // Запуск видеостриминга
+        async function startStreaming() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const videoTrack = stream.getVideoTracks()[0];
+                const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        e.data.arrayBuffer().then((buffer) => {
+                            // Отправляем данные видеопотока всем пользователям
+                            streamHub.invoke("SendFrameForAllUsers", roomName, userId, buffer);
+                        });
+                    }
+                };
+
+                mediaRecorder.start(200); // Отправка видео каждые 200 мс
+                document.getElementById("videoElement").srcObject = stream;
+            } catch (err) {
+                console.error("Ошибка при получении видеопотока: ", err);
+            }
+        }
+
+        // Подключение к хабам и присоединение к комнате
+        async function startConnections() {
+            try {
+                await roomHub.start();
+                await chatHub.start();
+                await streamHub.start();
+
+                // Присоединяемся к комнате
+                await roomHub.invoke("JoinRoom", roomName);
+            } catch (err) {
+                console.error("Ошибка при подключении к хабам: ", err);
+            }
+        }
+
+        // Инициализация соединений
+        startConnections();
+    </script>
+}

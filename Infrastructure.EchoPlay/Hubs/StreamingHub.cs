@@ -1,22 +1,13 @@
-using System.Collections.Concurrent;
-using System.Threading.Channels;
-using Domain.EchoPlay.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Infrastructure.EchoPlay.Hubs;
 
-public class StreamingHub(string roomName):Hub,IStreamingServer
+public class StreamingHub : Hub
 {
-    private readonly string _roomName = roomName;
-    
-    public async Task SendMessageForAllUsers(ChannelReader<byte[]> stream,string userId)
+    // Метод для отправки видеофрейма всем пользователям в комнате
+    public async Task SendFrameForAllUsers(string roomName, string userId, byte[] frameData)
     {
-        while (await stream.WaitToReadAsync())
-        {
-            while (stream.TryRead(out var data))
-            {
-                await Clients.Group(_roomName).SendAsync("ReceiveFrameForAllUsers", userId, data);
-            }
-        }
+        // Отправляем данные видео всем пользователям в комнате, кроме того, кто прислал
+        await Clients.Group(roomName).SendAsync("ReceiveFrameForAllUsers", userId, frameData);
     }
 }

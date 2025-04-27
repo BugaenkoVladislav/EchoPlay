@@ -4,20 +4,19 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Infrastructure.EchoPlay.Hubs;
 
-public class RoomHub(string roomName):Hub,IRoom
+public class RoomHub : Hub
 {
-    private readonly string _roomName = roomName;
-    
-    public async Task JoinRoom()
+    // Метод для присоединения пользователя к комнате
+    public async Task JoinRoom(string roomName)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, _roomName);
-        await Clients.Group(_roomName).SendAsync("Notify", $"{Context.ConnectionId} вошёл в комнату {_roomName}.");
+        await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
+        await Clients.Group(roomName).SendAsync("Notify", $"{Context.ConnectionId} вошёл в комнату {roomName}.");
     }
 
-    public async Task LeaveRoom()
+    // Метод для выхода из комнаты
+    public async Task LeaveRoom(string roomName)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, _roomName);
-        await Clients.Group(_roomName).SendAsync("Notify", $"{Context.ConnectionId} вышел комнату {_roomName}.");
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName);
+        await Clients.Group(roomName).SendAsync("Notify", $"{Context.ConnectionId} вышел из комнаты {roomName}.");
     }
-    
 }

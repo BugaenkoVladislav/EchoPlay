@@ -16,7 +16,6 @@ public class AuthenticationCreator(UnitOfWork uow, IEncryption encryption, IHttp
         {
             AuthType.Cookie => new CookieAuthentication(uow, encryption, accessor),
             AuthType.JwtBearer => new JwtAuthentication(uow, encryption, accessor),
-            AuthType.Google => new GoogleAuthentication(uow, encryption, accessor),
             _ => throw new ArgumentException($"Invalid authentication type: {type}")
         };
     }

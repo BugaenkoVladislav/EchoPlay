@@ -12,12 +12,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App.EchoPlay", "App.EchoPla
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure.EchoPlay", "Infrastructure.EchoPlay\Infrastructure.EchoPlay.csproj", "{A36376D3-C32A-44DC-86CA-D70477A8DF99}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoomGrpcService", "RoomGrpcService\RoomGrpcService.csproj", "{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatGrpcService", "ChatGrpcService\ChatGrpcService.csproj", "{5900F287-252F-4F84-8A51-DF59A22DA6C9}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamingGrpcService", "StreamingGrpcService\StreamingGrpcService.csproj", "{716220E3-95A1-42A7-AD44-AC0186E217A1}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EchoPlayWeb", "EchoPlayWeb\EchoPlayWeb.csproj", "{AB9D9DF9-9CA0-4AA3-9350-BC8D7CD11C5C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EchoPlayApi", "EchoPlayApi\EchoPlayApi.csproj", "{2898AB9C-DEDB-4A50-A7A3-E7E46B54A221}"
@@ -45,18 +39,6 @@ Global
 		{A36376D3-C32A-44DC-86CA-D70477A8DF99}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A36376D3-C32A-44DC-86CA-D70477A8DF99}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A36376D3-C32A-44DC-86CA-D70477A8DF99}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9E600EA1-2F76-42E6-86BF-AFFE7A9466C4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5900F287-252F-4F84-8A51-DF59A22DA6C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5900F287-252F-4F84-8A51-DF59A22DA6C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5900F287-252F-4F84-8A51-DF59A22DA6C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5900F287-252F-4F84-8A51-DF59A22DA6C9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{716220E3-95A1-42A7-AD44-AC0186E217A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{716220E3-95A1-42A7-AD44-AC0186E217A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{716220E3-95A1-42A7-AD44-AC0186E217A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{716220E3-95A1-42A7-AD44-AC0186E217A1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AB9D9DF9-9CA0-4AA3-9350-BC8D7CD11C5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AB9D9DF9-9CA0-4AA3-9350-BC8D7CD11C5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB9D9DF9-9CA0-4AA3-9350-BC8D7CD11C5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
