@@ -1,43 +1,72 @@
 using System.Text.Json;
+using App.EchoPlay.Dtos;
 using App.EchoPlay.Services;
+using Domain.EchoPlay.Entities;
+using Domain.EchoPlay.Enums;
 using EchoPlayWeb.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EchoPlayWeb.Controllers.Account;
 
-public class AccountController(AuthService authService) : Controller
+public class AccountController(HttpClient authHttpClient) : Controller
 {
-    private readonly AuthService _authService = authService;
+    private readonly HttpClient _authHttpClient = authHttpClient;
 
     [HttpGet]
-    public IActionResult Login()
-    {
-        return View();
-    }
-    [HttpGet]
-    public IActionResult SignUp()
-    {
-        return View();
-    }
+    public IActionResult Login() => View();
 
     [HttpGet]
-    public IActionResult TwoFactorAuth()
-    {
-        return View();
-    }
+    public IActionResult SignUp() => View();
+
+    [HttpGet]
+    public IActionResult TwoFactorAuth() => View();
 
     [HttpPost]
-    public async Task<ActionResult> Identify(LoginPasswordViewModel model)
+    public async Task<IActionResult> Identify(LoginPasswordViewModel model)
     {
         try
         {
-            await _authService.IdentifyUserAsync(new Domain.EchoPlay.Entities.User()
+            var authDto = new AuthDto
             {
-                Email = model.Email,
-                Password = model.Password
-            });
+                UserData = new User
+                {
+                    Email = model.Email,
+                    Password = model.Password
+                }
+            };
+
+            var response = await _authHttpClient.PostAsJsonAsync(
+                "api/Authentication/identify",
+                authDto);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await response.Content.ReadAsStringAsync());
+            }
+
             TempData["LoginModel"] = JsonSerializer.Serialize(model);
             return RedirectToAction("TwoFactorAuth", "Account");
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View("Login", model);
+        }
+    }
+
+    #region GoogleAuth
+
+    [HttpPost]
+    public async Task<IActionResult> LoginGoogle()
+    {
+        try
+        {
+            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/authenticate", new AuthDto());
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await response.Content.ReadAsStringAsync());
+            }
+            return RedirectToAction("Index", "Home");
         }
         catch (Exception ex)
         {
@@ -45,19 +74,22 @@ public class AccountController(AuthService authService) : Controller
         }
     }
 
-    #region GoogleAuth
-
     [HttpPost]
-    public async Task LoginGoogle()
+    public async Task<IActionResult> LogoutGoogle()
     {
-        await _authService.AuthenticateAsync(new Domain.EchoPlay.Entities.User(),
-            Domain.EchoPlay.Enums.AuthType.Google, 0);
-    }
-
-    [HttpPost]
-    public async Task LogoutGoogle()
-    {
-        await _authService.UnauthenticateAsync(new Domain.EchoPlay.Entities.User());
+        try
+        {
+            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/unauthenticate", new AuthDto());
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await response.Content.ReadAsStringAsync());
+            }
+            return RedirectToAction("Login");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     #endregion
@@ -65,20 +97,57 @@ public class AccountController(AuthService authService) : Controller
     #region CookieAuth
 
     [HttpPost]
-    public async Task LoginCookie(LoginPasswordViewModel model, long code = 0)
+    public async Task<IActionResult> LoginCookie(LoginPasswordViewModel model, long code = 0)
     {
-        await _authService.AuthenticateAsync(new Domain.EchoPlay.Entities.User()
+        try
         {
-            Email = model.Email,
-            Password = model.Password
-        }, Domain.EchoPlay.Enums.AuthType.Cookie, code);
+            var authDto = new AuthDto
+            {
+                UserData = new User
+                {
+                    Email = model.Email,
+                    Password = model.Password
+                },
+                Code = code
+            };
+            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/authenticate", authDto);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await response.Content.ReadAsStringAsync());
+            }
+
+            return RedirectToAction("Index", "Home");
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View("Login", model);
+        }
     }
 
     [HttpPost]
-    public async Task LogoutCookie(LoginPasswordViewModel model)
+    public async Task<IActionResult> LogoutCookie(LoginPasswordViewModel model)
     {
-        await _authService.UnauthenticateAsync(new Domain.EchoPlay.Entities.User()
-            { Email = model.Email, Password = model.Password });
+        try
+        {
+            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/unauthenticate", new AuthDto()
+            {
+                UserData = new User()
+                {
+                    Email = model.Email,
+                    Password = model.Password
+                }
+            });
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await response.Content.ReadAsStringAsync());
+            }
+            return RedirectToAction("Login");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     #endregion
