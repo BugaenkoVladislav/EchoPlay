@@ -1,115 +1,193 @@
 @{
-    ViewData["Title"] = "Комната";
-    string roomName = "testRoom"; // Можно потом передавать из контроллера
+    ViewData["Title"] = "Чат комната";
 }
 
-<h2>Чат в комнате: @roomName</h2>
+<div class="container">
+    <h1>Чат комната: <span id="roomIdDisplay">@ViewData["RoomId"]</span></h1>
+    
+    <div class="chat-box">
+        <ul id="messagesList" class="message-list"></ul>
+        <div class="message-input">
+            <input type="text" id="messageInput" placeholder="Введите сообщение..." />
+            <button id="sendButton">Отправить</button>
+        </div>
+    </div>
+</div>
 
-<!-- Блок для уведомлений -->
-<div id="notifyBox" style="color: darkgreen; margin-bottom: 10px;"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+<script>
+    const roomId = "@ViewData["RoomId"]";
+    const currentUser = "User_" + Math.random().toString(36).substring(2, 8);
+    console.log("Room ID:", roomId, "User:", currentUser);
 
-<!-- Блок для чата -->
-<div id="chatWindow" style="border: 1px solid #aaa; height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+    // Подключение к RoomHub
+    const roomConnection = new signalR.HubConnectionBuilder()
+        .withUrl("https://localhost:7222/roomHub")
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
 
-<!-- Поле для ввода сообщения -->
-<input type="text" id="chatMessage" placeholder="Сообщение" />
-<button onclick="sendMessage()">Отправить</button>
+    // Подключение к ChatHub
+    const chatConnection = new signalR.HubConnectionBuilder()
+        .withUrl("https://localhost:7222/chatHub")
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
 
-<hr>
+    // Обработчики для RoomHub
+    roomConnection.on("Notify", (message) => {
+        addSystemMessage(message);
+    });
 
-<h2>Видео трансляция</h2>
-<button onclick="startStreaming()">Начать стрим</button>
+    // Обработчики для ChatHub
+    chatConnection.on("ReceiveMessage", (user, message) => {
+        addMessageToChat(user, message);
+    });
 
-<!-- Видео элемент для отображения видеопотока -->
-<video id="videoElement" autoplay muted style="width: 400px; height: 300px; border: 1px solid black;"></video>
+    function addMessageToChat(user, message) {
+        const li = document.createElement("li");
+        li.innerHTML = `<strong>${user}:</strong> ${message}`;
+        document.getElementById("messagesList").appendChild(li);
+        scrollToBottom();
+    }
 
-@section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
-    <script>
-        const roomName = "@roomName"; // Имя комнаты
-        const userId = crypto.randomUUID(); // Идентификатор пользователя
+    function addSystemMessage(message) {
+        const li = document.createElement("li");
+        li.className = "system-message";
+        li.textContent = message;
+        document.getElementById("messagesList").appendChild(li);
+        scrollToBottom();
+    }
 
-        // Создаем соединение для чата и видеопотока
-        const roomHub = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:5219/roomHub")  // Используем HTTPS
-            .build();
+    function scrollToBottom() {
+        const messagesList = document.getElementById("messagesList");
+        messagesList.scrollTop = messagesList.scrollHeight;
+    }
 
-        const chatHub = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:5219/chatHub") // Используем HTTPS
-            .build();
-
-        const streamHub = new signalR.HubConnectionBuilder()
-            .withUrl("https://localhost:5219/streamingHub") // Используем HTTPS
-            .build();
-
-        // Обработчики для хабов
-
-        // Уведомления для RoomHub (вход/выход)
-        roomHub.on("Notify", (msg) => {
-            document.getElementById("notifyBox").innerText = msg;
-        });
-
-        // Получение сообщений чата
-        chatHub.on("ReceiveMessage", (msg) => {
-            document.getElementById("chatWindow").innerHTML += `<div>${msg}</div>`;
-        });
-
-        // Получение видеопотока
-        streamHub.on("ReceiveFrameForAllUsers", (senderId, data) => {
-            if (senderId === userId) return; // Не показываем свой стрим
-            const blob = new Blob([new Uint8Array(data)], { type: 'image/jpeg' });
-            const url = URL.createObjectURL(blob);
-            const video = document.getElementById("videoElement");
-            video.src = url;
-        });
-
-        // Отправка сообщения в чат
-        async function sendMessage() {
-            const message = document.getElementById("chatMessage").value;
-            if (message) {
-                await chatHub.invoke("SendMessage", roomName, message);
-                document.getElementById("chatMessage").value = ""; // Очистить поле ввода
-            }
-        }
-
-        // Запуск видеостриминга
-        async function startStreaming() {
+    async function sendMessage() {
+        const messageInput = document.getElementById("messageInput");
+        const message = messageInput.value.trim();
+        
+        if (message && chatConnection.state === signalR.HubConnectionState.Connected) {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const videoTrack = stream.getVideoTracks()[0];
-                const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
-
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) {
-                        e.data.arrayBuffer().then((buffer) => {
-                            // Отправляем данные видеопотока всем пользователям
-                            streamHub.invoke("SendFrameForAllUsers", roomName, userId, buffer);
-                        });
-                    }
-                };
-
-                mediaRecorder.start(200); // Отправка видео каждые 200 мс
-                document.getElementById("videoElement").srcObject = stream;
+                await chatConnection.invoke("SendMessage", roomId, currentUser, message);
+                messageInput.value = "";
             } catch (err) {
-                console.error("Ошибка при получении видеопотока: ", err);
+                console.error("Ошибка отправки:", err);
             }
         }
+    }
 
-        // Подключение к хабам и присоединение к комнате
-        async function startConnections() {
-            try {
-                await roomHub.start();
-                await chatHub.start();
-                await streamHub.start();
-
-                // Присоединяемся к комнате
-                await roomHub.invoke("JoinRoom", roomName);
-            } catch (err) {
-                console.error("Ошибка при подключении к хабам: ", err);
-            }
+    async function startConnections() {
+        try {
+            // Запускаем оба подключения
+            await Promise.all([
+                roomConnection.start(),
+                chatConnection.start()
+            ]);
+            
+            console.log("Подключения установлены");
+            await roomConnection.invoke("JoinRoom", roomId);
+            
+            roomConnection.onclose(async () => {
+                console.log("Разрыв соединения с RoomHub. Переподключение...");
+                await startConnections();
+            });
+            
+            chatConnection.onclose(async () => {
+                console.log("Разрыв соединения с ChatHub. Переподключение...");
+                await startConnections();
+            });
+        } catch (err) {
+            console.error("Ошибка подключения:", err);
+            setTimeout(startConnections, 5000);
         }
+    }
 
-        // Инициализация соединений
-        startConnections();
-    </script>
-}
+    document.getElementById("sendButton").addEventListener("click", sendMessage);
+    document.getElementById("messageInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
+
+    window.addEventListener("beforeunload", async () => {
+        if (roomConnection.state === signalR.HubConnectionState.Connected) {
+            await roomConnection.invoke("LeaveRoom", roomId);
+        }
+    });
+
+    startConnections();
+</script>
+
+<style>
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+    
+    .chat-box {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        background: #f9f9f9;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .message-list {
+        list-style: none;
+        padding: 0;
+        height: 400px;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        background: white;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+    }
+    
+    .message-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .message-list li:last-child {
+        border-bottom: none;
+    }
+    
+    .system-message {
+        color: #666;
+        font-style: italic;
+        font-size: 0.9em;
+    }
+    
+    .message-input {
+        display: flex;
+        gap: 10px;
+    }
+    
+    #messageInput {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+    
+    #sendButton {
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    
+    #sendButton:hover {
+        background: #0069d9;
+    }
+    
+    #roomIdDisplay {
+        color: #007bff;
+        font-weight: bold;
+    }
+</style>

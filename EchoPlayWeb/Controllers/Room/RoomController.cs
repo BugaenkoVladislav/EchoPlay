@@ -6,8 +6,10 @@ namespace EchoPlayWeb.Controllers.Room;
 public class RoomController : Controller
 {
     // GET
-    public IActionResult Index()
+    [Route("Room/Index/{roomId}")]  
+    public IActionResult Index(string roomId)
     {
+        ViewData["RoomId"] = roomId;
         return View();
     }
     [Authorize]
