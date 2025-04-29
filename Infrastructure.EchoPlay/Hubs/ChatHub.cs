@@ -5,31 +5,20 @@ namespace Infrastructure.EchoPlay.Hubs;
 
 public class ChatHub : Hub, IChat
 {
-    // Метод для отправки сообщения в комнату
-    public async Task SendMessage(string roomName, string message)
+    public async Task SendMessage(string roomId, string user, string message)
     {
-        // Отправляем сообщение всем пользователям в комнате
-        await Clients.Group(roomName).SendAsync("ReceiveMessage", message);
+        // Генерируем уникальный ID для сообщения
+        var messageId = Guid.NewGuid().ToString();
+        await Clients.Group(roomId).SendAsync("ReceiveMessage", user, message, messageId);
     }
 
-    // Метод для отправки личного сообщения
-    public async Task SendPrivateMessage(string roomName,string connectionId, string message)
+    public async Task UpdateMessage(string roomName, string user, string messageId, string message)
     {
-        // Отправляем личное сообщение пользователю по его connectionId
-        await Clients.Client(connectionId).SendAsync("ReceiveMessage", message);
+        await Clients.Group(roomName).SendAsync("UpdateMessage", messageId, message, user);
     }
 
-    // Метод для обновления сообщения в комнате
-    public async Task UpdateMessage(string roomName, string messageId, string message)
+    public async Task DeleteMessage(string roomName, string user, string messageId)
     {
-        // Отправляем обновленное сообщение всем пользователям в комнате
-        await Clients.Group(roomName).SendAsync("UpdateMessage", messageId, message);
-    }
-
-    // Метод для удаления сообщения в комнате
-    public async Task DeleteMessage(string roomName, string messageId)
-    {
-        // Отправляем команду на удаление сообщения всем пользователям в комнате
-        await Clients.Group(roomName).SendAsync("DeleteMessage", messageId);
+        await Clients.Group(roomName).SendAsync("DeleteMessage", messageId, user);
     }
 }

@@ -4,6 +4,7 @@
 
 <div class="container">
     <h1>Чат комната: <span id="roomIdDisplay">@ViewData["RoomId"]</span></h1>
+    <div class="user-info">Вы вошли как: <span id="currentUserDisplay"></span></div>
     
     <div class="chat-box">
         <ul id="messagesList" class="message-list"></ul>
@@ -16,112 +17,209 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 <script>
+    // Конфигурация
     const roomId = "@ViewData["RoomId"]";
     const currentUser = "User_" + Math.random().toString(36).substring(2, 8);
+    const serverUrl = "https://localhost:7222"; // Убедитесь, что это правильный URL сервера
+
+    // Элементы DOM
+    const messagesList = document.getElementById("messagesList");
+    const messageInput = document.getElementById("messageInput");
+    const sendButton = document.getElementById("sendButton");
+    const currentUserDisplay = document.getElementById("currentUserDisplay");
+
+    // Отображаем текущего пользователя
+    currentUserDisplay.textContent = currentUser;
     console.log("Room ID:", roomId, "User:", currentUser);
 
-    // Подключение к RoomHub
+    // Подключение к хабам
     const roomConnection = new signalR.HubConnectionBuilder()
-        .withUrl("https://localhost:7222/roomHub")
+        .withUrl(`${serverUrl}/roomHub`)
         .configureLogging(signalR.LogLevel.Information)
         .build();
 
-    // Подключение к ChatHub
     const chatConnection = new signalR.HubConnectionBuilder()
-        .withUrl("https://localhost:7222/chatHub")
+        .withUrl(`${serverUrl}/chatHub`)
         .configureLogging(signalR.LogLevel.Information)
         .build();
 
-    // Обработчики для RoomHub
+    // Обработчики сообщений от сервера
     roomConnection.on("Notify", (message) => {
         addSystemMessage(message);
     });
 
-    // Обработчики для ChatHub
-    chatConnection.on("ReceiveMessage", (user, message) => {
-        addMessageToChat(user, message);
+    chatConnection.on("ReceiveMessage", (user, message, messageId) => {
+        addMessageToChat(user, message, messageId);
     });
 
+    chatConnection.on("UpdateMessage", (messageId, newMessage, user) => {
+        updateMessageInChat(messageId, newMessage, user);
+    });
+
+    chatConnection.on("DeleteMessage", (messageId, user) => {
+        deleteMessageFromChat(messageId, user);
+    });
+
+    // Функции для работы с UI
     function addMessageToChat(user, message) {
         const li = document.createElement("li");
-        li.innerHTML = `<strong>${user}:</strong> ${message}`;
-        document.getElementById("messagesList").appendChild(li);
+        li.className = "system-message";
+        li.textContent = message;
+        messagesList.appendChild(li);
         scrollToBottom();
+    }
+
+    function updateMessageInChat(messageId, newMessage, user) {
+        const messageContent = document.getElementById(`content-${messageId}`);
+        if (messageContent) {
+            messageContent.textContent = newMessage;
+            addSystemMessage(`${user} обновил сообщение`);
+        }
+    }
+
+    function deleteMessageFromChat(messageId, user) {
+        const messageElement = document.querySelector(`li[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.remove();
+            addSystemMessage(`${user} удалил сообщение`);
+        }
     }
 
     function addSystemMessage(message) {
         const li = document.createElement("li");
         li.className = "system-message";
         li.textContent = message;
-        document.getElementById("messagesList").appendChild(li);
+        messagesList.appendChild(li);
         scrollToBottom();
     }
 
     function scrollToBottom() {
-        const messagesList = document.getElementById("messagesList");
         messagesList.scrollTop = messagesList.scrollHeight;
     }
 
+    // Функции для работы с сообщениями
     async function sendMessage() {
-        const messageInput = document.getElementById("messageInput");
         const message = messageInput.value.trim();
-        
+
         if (message && chatConnection.state === signalR.HubConnectionState.Connected) {
             try {
                 await chatConnection.invoke("SendMessage", roomId, currentUser, message);
                 messageInput.value = "";
             } catch (err) {
                 console.error("Ошибка отправки:", err);
+                addSystemMessage("Не удалось отправить сообщение");
             }
         }
     }
 
+    async function startEditMessage(messageId) {
+        const messageContent = document.getElementById(`content-${messageId}`);
+        const currentText = messageContent.textContent;
+
+        messageContent.innerHTML = `
+        <input type="text" id="edit-input-${messageId}" value="${currentText}" />
+        <button onclick="confirmEdit('${messageId}')">✓</button>
+        <button onclick="cancelEdit('${messageId}')">✕</button>`;
+    }
+
+    async function confirmEdit(messageId) {
+        const newMessage = document.getElementById(`edit-input-${messageId}`).value.trim();
+        if (newMessage) {
+            try {
+                await chatConnection.invoke("UpdateMessage", roomId, currentUser, messageId, newMessage);
+            } catch (err) {
+                console.error("Ошибка обновления:", err);
+                addSystemMessage("Не удалось обновить сообщение");
+            }
+        }
+    }
+
+    function cancelEdit(messageId) {
+        const messageContent = document.getElementById(`content-${messageId}`);
+        const originalText = document.getElementById(`edit-input-${messageId}`).value;
+        messageContent.textContent = originalText;
+    }
+
+    async function deleteMessage(messageId) {
+        if (confirm("Вы уверены, что хотите удалить это сообщение?")) {
+            try {
+                await chatConnection.invoke("DeleteMessage", roomId, currentUser, messageId);
+            } catch (err) {
+                console.error("Ошибка удаления:", err);
+                addSystemMessage("Не удалось удалить сообщение");
+            }
+        }
+    }
+
+    // Подключение к серверу
     async function startConnections() {
         try {
-            // Запускаем оба подключения
             await Promise.all([
                 roomConnection.start(),
                 chatConnection.start()
             ]);
-            
+
             console.log("Подключения установлены");
             await roomConnection.invoke("JoinRoom", roomId);
-            
+            addSystemMessage(`Вы присоединились к комнате ${roomId}`);
+
+            // Обработка разрыва соединения
             roomConnection.onclose(async () => {
-                console.log("Разрыв соединения с RoomHub. Переподключение...");
+                addSystemMessage("Потеряно соединение. Переподключение...");
                 await startConnections();
             });
-            
+
             chatConnection.onclose(async () => {
-                console.log("Разрыв соединения с ChatHub. Переподключение...");
+                addSystemMessage("Потеряно соединение с чатом. Переподключение...");
                 await startConnections();
             });
         } catch (err) {
             console.error("Ошибка подключения:", err);
+            addSystemMessage("Ошибка подключения к серверу. Попытка переподключения через 5 секунд...");
             setTimeout(startConnections, 5000);
         }
     }
 
-    document.getElementById("sendButton").addEventListener("click", sendMessage);
-    document.getElementById("messageInput").addEventListener("keypress", (e) => {
+    // Обработчики событий
+    sendButton.addEventListener("click", sendMessage);
+    messageInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
     });
 
     window.addEventListener("beforeunload", async () => {
         if (roomConnection.state === signalR.HubConnectionState.Connected) {
-            await roomConnection.invoke("LeaveRoom", roomId);
+            try {
+                await roomConnection.invoke("LeaveRoom", roomId);
+            } catch (err) {
+                console.error("Ошибка при выходе из комнаты:", err);
+            }
         }
     });
 
+    // Глобальные функции для использования в HTML
+    window.sendMessage = sendMessage;
+    window.startEditMessage = startEditMessage;
+    window.deleteMessage = deleteMessage;
+    window.confirmEdit = confirmEdit;
+    window.cancelEdit = cancelEdit;
+
+    // Запускаем подключение
     startConnections();
 </script>
 
 <style>
+    /* Стили остаются без изменений */
     .container {
         max-width: 800px;
         margin: 0 auto;
         padding: 20px;
         font-family: Arial, sans-serif;
+    }
+    
+    .user-info {
+        margin-bottom: 10px;
+        color: #555;
+        font-size: 0.9em;
     }
     
     .chat-box {
@@ -189,5 +287,41 @@
     #roomIdDisplay {
         color: #007bff;
         font-weight: bold;
+    }
+    
+    #currentUserDisplay {
+        font-weight: bold;
+        color: #28a745;
+    }
+    .chat-message {
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        background: #f0f0f0;
+        border-radius: 4px;
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+
+    .message-actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    .message-actions button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .system-message {
+        color: #666;
+        font-style: italic;
+        font-size: 0.9em;
+        padding: 5px 0;
     }
 </style>
