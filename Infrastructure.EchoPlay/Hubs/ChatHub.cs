@@ -7,7 +7,6 @@ public class ChatHub : Hub, IChat
 {
     public async Task SendMessage(string roomId, string user, string message)
     {
-        // Генерируем уникальный ID для сообщения
         var messageId = Guid.NewGuid().ToString();
         await Clients.Group(roomId).SendAsync("ReceiveMessage", user, message, messageId);
     }
@@ -26,8 +25,7 @@ public class ChatHub : Hub, IChat
         await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
         await Clients.Group(roomName).SendAsync("Notify", $"{Context.ConnectionId} вошёл в комнату {roomName}.");
     }
-
-    // Метод для выхода из комнаты
+    
     public async Task LeaveRoom(string roomName)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName);
