@@ -17,8 +17,6 @@ namespace EchoPlayApi
 
             // Регистрация сервисов
             builder.Services.AddControllers();
-            builder.Services.AddSignalR();
-            
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddDbContext<MyDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("SecondaryDatabase")));
@@ -68,16 +66,15 @@ namespace EchoPlayApi
                             .AllowCredentials(); // Разрешаем отправку cookies, если нужно
                     });
             });
-
-            // Добавление SignalR
-            builder.Services.AddSignalR(); // Это важно!
+            
+            builder.Services.AddSignalR(); 
 
             var app = builder.Build();
             app.UseCors("AllowLocalhost");  
             app.UseHttpsRedirection();
             app.UseHsts();  
             // Настройка маршрутов хабов SignalR
-            app.MapHub<RoomHub>("/roomHub");
+            //app.MapHub<RoomHub>("/roomHub");
             app.MapHub<ChatHub>("/chatHub");
             app.MapHub<StreamingHub>("/streamingHub");
 

@@ -5,7 +5,7 @@
 <div class="container">
     <h1>Чат комната: <span id="roomIdDisplay">@ViewData["RoomId"]</span></h1>
     <div class="user-info">Вы вошли как: <span id="currentUserDisplay"></span></div>
-    
+
     <div class="chat-box">
         <ul id="messagesList" class="message-list"></ul>
         <div class="message-input">
@@ -17,78 +17,67 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 <script>
-    // Конфигурация
     const roomId = "@ViewData["RoomId"]";
     const currentUser = "User_" + Math.random().toString(36).substring(2, 8);
-    const serverUrl = "https://localhost:7222"; // Убедитесь, что это правильный URL сервера
+    const serverUrl = "https://localhost:7222"; // Поменяй на нужный порт/домен
 
-    // Элементы DOM
     const messagesList = document.getElementById("messagesList");
     const messageInput = document.getElementById("messageInput");
     const sendButton = document.getElementById("sendButton");
     const currentUserDisplay = document.getElementById("currentUserDisplay");
 
-    // Отображаем текущего пользователя
     currentUserDisplay.textContent = currentUser;
-    console.log("Room ID:", roomId, "User:", currentUser);
 
-    // Подключение к хабам
-    const roomConnection = new signalR.HubConnectionBuilder()
-        .withUrl(`${serverUrl}/roomHub`)
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
-
-    const chatConnection = new signalR.HubConnectionBuilder()
+    const chatRoomConnection = new signalR.HubConnectionBuilder()
         .withUrl(`${serverUrl}/chatHub`)
         .configureLogging(signalR.LogLevel.Information)
         .build();
 
-    // Обработчики сообщений от сервера
-    roomConnection.on("Notify", (message) => {
-        addSystemMessage(message);
-    });
+    // Обработчики
+    chatRoomConnection.on("Notify", (message) => addSystemMessage(message));
+    chatRoomConnection.on("ReceiveMessage", (user, message, messageId) => addMessageToChat(user, message, messageId));
+    chatRoomConnection.on("UpdateMessage", (messageId, newMessage, user) => updateMessageInChat(messageId, newMessage, user));
+    chatRoomConnection.on("DeleteMessage", (messageId, user) => deleteMessageFromChat(messageId, user));
 
-    chatConnection.on("ReceiveMessage", (user, message, messageId) => {
-        addMessageToChat(user, message, messageId);
-    });
-
-    chatConnection.on("UpdateMessage", (messageId, newMessage, user) => {
-        updateMessageInChat(messageId, newMessage, user);
-    });
-
-    chatConnection.on("DeleteMessage", (messageId, user) => {
-        deleteMessageFromChat(messageId, user);
-    });
-
-    // Функции для работы с UI
-    function addMessageToChat(user, message) {
+    // UI
+    function addMessageToChat(user, message, messageId) {
         const li = document.createElement("li");
-        li.className = "system-message";
-        li.textContent = message;
+        li.className = "chat-message";
+        li.setAttribute("data-message-id", messageId);
+        li.innerHTML = `
+            <div class="message-header">
+                <strong>${user}</strong>
+                <div class="message-actions">
+                    <button onclick="startEditMessage('${messageId}')">✏️</button>
+                    <button onclick="deleteMessage('${messageId}')">🗑️</button>
+                </div>
+            </div>
+            <div id="content-${messageId}">${message}</div>
+        `;
         messagesList.appendChild(li);
         scrollToBottom();
     }
 
     function updateMessageInChat(messageId, newMessage, user) {
-        const messageContent = document.getElementById(`content-${messageId}`);
-        if (messageContent) {
-            messageContent.textContent = newMessage;
+        const el = document.getElementById(`content-${messageId}`);
+        if (el) {
+            el.textContent = newMessage;
             addSystemMessage(`${user} обновил сообщение`);
         }
     }
 
     function deleteMessageFromChat(messageId, user) {
-        const messageElement = document.querySelector(`li[data-message-id="${messageId}"]`);
-        if (messageElement) {
-            messageElement.remove();
+        const li = document.querySelector(`li[data-message-id="${messageId}"]`);
+        if (li) {
+            li.remove();
             addSystemMessage(`${user} удалил сообщение`);
         }
     }
 
-    function addSystemMessage(message) {
+    function addSystemMessage(msg) {
         const li = document.createElement("li");
         li.className = "system-message";
-        li.textContent = message;
+        li.textContent = msg;
         messagesList.appendChild(li);
         scrollToBottom();
     }
@@ -97,231 +86,86 @@
         messagesList.scrollTop = messagesList.scrollHeight;
     }
 
-    // Функции для работы с сообщениями
     async function sendMessage() {
         const message = messageInput.value.trim();
-
-        if (message && chatConnection.state === signalR.HubConnectionState.Connected) {
+        if (message && chatRoomConnection.state === signalR.HubConnectionState.Connected) {
             try {
-                await chatConnection.invoke("SendMessage", roomId, currentUser, message);
+                await chatRoomConnection.invoke("SendMessage", roomId, currentUser, message);
                 messageInput.value = "";
             } catch (err) {
-                console.error("Ошибка отправки:", err);
                 addSystemMessage("Не удалось отправить сообщение");
             }
         }
     }
 
     async function startEditMessage(messageId) {
-        const messageContent = document.getElementById(`content-${messageId}`);
-        const currentText = messageContent.textContent;
-
-        messageContent.innerHTML = `
-        <input type="text" id="edit-input-${messageId}" value="${currentText}" />
-        <button onclick="confirmEdit('${messageId}')">✓</button>
-        <button onclick="cancelEdit('${messageId}')">✕</button>`;
+        const content = document.getElementById(`content-${messageId}`);
+        const currentText = content.textContent;
+        content.innerHTML = `
+            <input type="text" id="edit-input-${messageId}" value="${currentText}" />
+            <button onclick="confirmEdit('${messageId}')">✓</button>
+            <button onclick="cancelEdit('${messageId}', '${currentText}')">✕</button>
+        `;
     }
 
     async function confirmEdit(messageId) {
         const newMessage = document.getElementById(`edit-input-${messageId}`).value.trim();
         if (newMessage) {
-            try {
-                await chatConnection.invoke("UpdateMessage", roomId, currentUser, messageId, newMessage);
-            } catch (err) {
-                console.error("Ошибка обновления:", err);
-                addSystemMessage("Не удалось обновить сообщение");
-            }
+            await chatRoomConnection.invoke("UpdateMessage", roomId, currentUser, messageId, newMessage);
         }
     }
 
-    function cancelEdit(messageId) {
-        const messageContent = document.getElementById(`content-${messageId}`);
-        const originalText = document.getElementById(`edit-input-${messageId}`).value;
-        messageContent.textContent = originalText;
+    function cancelEdit(messageId, originalText) {
+        const content = document.getElementById(`content-${messageId}`);
+        content.textContent = originalText;
     }
 
     async function deleteMessage(messageId) {
-        if (confirm("Вы уверены, что хотите удалить это сообщение?")) {
-            try {
-                await chatConnection.invoke("DeleteMessage", roomId, currentUser, messageId);
-            } catch (err) {
-                console.error("Ошибка удаления:", err);
-                addSystemMessage("Не удалось удалить сообщение");
-            }
+        if (confirm("Удалить сообщение?")) {
+            await chatRoomConnection.invoke("DeleteMessage", roomId, currentUser, messageId);
         }
     }
 
-    // Подключение к серверу
-    async function startConnections() {
+    async function startConnection() {
         try {
-            await Promise.all([
-                roomConnection.start(),
-                chatConnection.start()
-            ]);
-
-            console.log("Подключения установлены");
-            await roomConnection.invoke("JoinRoom", roomId);
+            await chatRoomConnection.start();
+            await chatRoomConnection.invoke("JoinRoom", roomId);
             addSystemMessage(`Вы присоединились к комнате ${roomId}`);
-
-            // Обработка разрыва соединения
-            roomConnection.onclose(async () => {
-                addSystemMessage("Потеряно соединение. Переподключение...");
-                await startConnections();
-            });
-
-            chatConnection.onclose(async () => {
-                addSystemMessage("Потеряно соединение с чатом. Переподключение...");
-                await startConnections();
-            });
         } catch (err) {
-            console.error("Ошибка подключения:", err);
-            addSystemMessage("Ошибка подключения к серверу. Попытка переподключения через 5 секунд...");
-            setTimeout(startConnections, 5000);
+            addSystemMessage("Ошибка подключения. Повтор через 5 секунд...");
+            setTimeout(startConnection, 5000);
         }
     }
 
-    // Обработчики событий
     sendButton.addEventListener("click", sendMessage);
     messageInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
     });
 
     window.addEventListener("beforeunload", async () => {
-        if (roomConnection.state === signalR.HubConnectionState.Connected) {
-            try {
-                await roomConnection.invoke("LeaveRoom", roomId);
-            } catch (err) {
-                console.error("Ошибка при выходе из комнаты:", err);
-            }
-        }
+        try {
+            await chatRoomConnection.invoke("LeaveRoom", roomId);
+        } catch {}
     });
 
-    // Глобальные функции для использования в HTML
-    window.sendMessage = sendMessage;
     window.startEditMessage = startEditMessage;
     window.deleteMessage = deleteMessage;
     window.confirmEdit = confirmEdit;
     window.cancelEdit = cancelEdit;
 
-    // Запускаем подключение
-    startConnections();
+    startConnection();
 </script>
 
 <style>
-    /* Стили остаются без изменений */
-    .container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        font-family: Arial, sans-serif;
-    }
-    
-    .user-info {
-        margin-bottom: 10px;
-        color: #555;
-        font-size: 0.9em;
-    }
-    
-    .chat-box {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        background: #f9f9f9;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .message-list {
-        list-style: none;
-        padding: 0;
-        height: 400px;
-        overflow-y: auto;
-        border: 1px solid #eee;
-        background: white;
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 4px;
-    }
-    
-    .message-list li {
-        padding: 8px 0;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .message-list li:last-child {
-        border-bottom: none;
-    }
-    
-    .system-message {
-        color: #666;
-        font-style: italic;
-        font-size: 0.9em;
-    }
-    
-    .message-input {
-        display: flex;
-        gap: 10px;
-    }
-    
-    #messageInput {
-        flex: 1;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 16px;
-    }
-    
-    #sendButton {
-        padding: 10px 20px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-    }
-    
-    #sendButton:hover {
-        background: #0069d9;
-    }
-    
-    #roomIdDisplay {
-        color: #007bff;
-        font-weight: bold;
-    }
-    
-    #currentUserDisplay {
-        font-weight: bold;
-        color: #28a745;
-    }
-    .chat-message {
-        margin-bottom: 10px;
-        padding: 8px 12px;
-        background: #f0f0f0;
-        border-radius: 4px;
-    }
-
-    .message-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 4px;
-    }
-
-    .message-actions {
-        display: flex;
-        gap: 5px;
-    }
-
-    .message-actions button {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    .system-message {
-        color: #666;
-        font-style: italic;
-        font-size: 0.9em;
-        padding: 5px 0;
-    }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial; }
+    .chat-box { border: 1px solid #ccc; border-radius: 8px; padding: 15px; background: #f9f9f9; }
+    .message-list { list-style: none; padding: 0; height: 400px; overflow-y: auto; background: #fff; margin-bottom: 10px; border: 1px solid #eee; border-radius: 4px; }
+    .message-list li { padding: 8px; border-bottom: 1px solid #eee; }
+    .chat-message { background: #f0f0f0; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+    .message-header { display: flex; justify-content: space-between; }
+    .message-actions button { background: none; border: none; cursor: pointer; }
+    .system-message { color: #666; font-style: italic; }
+    .message-input { display: flex; gap: 10px; }
+    #messageInput { flex: 1; padding: 10px; }
+    #sendButton { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
 </style>

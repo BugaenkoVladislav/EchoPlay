@@ -21,4 +21,16 @@ public class ChatHub : Hub, IChat
     {
         await Clients.Group(roomName).SendAsync("DeleteMessage", messageId, user);
     }
+    public async Task JoinRoom(string roomName)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
+        await Clients.Group(roomName).SendAsync("Notify", $"{Context.ConnectionId} вошёл в комнату {roomName}.");
+    }
+
+    // Метод для выхода из комнаты
+    public async Task LeaveRoom(string roomName)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName);
+        await Clients.Group(roomName).SendAsync("Notify", $"{Context.ConnectionId} вышел из комнаты {roomName}.");
+    }
 }
