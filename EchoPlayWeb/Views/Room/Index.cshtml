@@ -5,11 +5,25 @@
 <div class="app-container">
     <!-- Основное содержимое страницы будет слева -->
     <div class="content-area">
-        <!-- Здесь может быть ваша видеотрансляция или другой контент -->
-        <div class="placeholder-content">
-            <h2>Основная область контента</h2>
-            <p>Здесь может располагаться видеотрансляция или другой контент</p>
+        <!-- Видео элементы для WebRTC -->
+        <div class="video-container">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <video id="remoteVideo" autoplay playsinline></video>
         </div>
+        <div class="device-controls">
+            <select id="cameraSelect" class="device-select"></select>
+            <select id="microphoneSelect" class="device-select"></select>
+        </div>
+        <div class="webrtc-controls">
+            <button id="startButton">Start Devices</button>
+            <button id="callButton" disabled>Call</button>
+            <button id="hangupButton" disabled>Hang Up</button>
+        </div>
+        <div id="onlineUsersContainer" style="display: none;">
+            <h3>Online Users:</h3>
+            <ul id="onlineUsersList"></ul>
+        </div>
+        <div id="errorContainer" class="error-message"></div>
     </div>
 
     <!-- Чат справа -->
@@ -29,30 +43,294 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 <script>
-    // Весь ваш JavaScript код остается без изменений
+    // Chat room variables
     const roomId = "@ViewData["RoomId"]";
     const currentUser = "User_" + Math.random().toString(36).substring(2, 8);
-    const serverUrl = "https://localhost:7222"; // Поменяй на нужный порт/домен
+    const serverUrl = "https://localhost:7222";
 
+    // DOM elements
     const messagesList = document.getElementById("messagesList");
     const messageInput = document.getElementById("messageInput");
     const sendButton = document.getElementById("sendButton");
     const currentUserDisplay = document.getElementById("currentUserDisplay");
+    
+    // WebRTC elements
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const startButton = document.getElementById('startButton');
+    const callButton = document.getElementById('callButton');
+    const hangupButton = document.getElementById('hangupButton');
+    const onlineUsersList = document.getElementById('onlineUsersList');
+    const onlineUsersContainer = document.getElementById('onlineUsersContainer');
+    const cameraSelect = document.getElementById('cameraSelect');
+    const microphoneSelect = document.getElementById('microphoneSelect');
+    const errorContainer = document.getElementById('errorContainer');
 
+    // WebRTC variables
+    let localStream;
+    let peerConnection;
+    let currentCallConnectionId = null;
+    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    // Set current user display
     currentUserDisplay.textContent = currentUser;
 
+    // Initialize SignalR connections
     const chatRoomConnection = new signalR.HubConnectionBuilder()
         .withUrl(`${serverUrl}/chatHub`)
         .configureLogging(signalR.LogLevel.Information)
         .build();
 
-    // Обработчики
+    const webRtcConnection = new signalR.HubConnectionBuilder()
+        .withUrl(`${serverUrl}/WebRTCHub`)
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+
+    // Chat room handlers (unchanged)
     chatRoomConnection.on("Notify", (message) => addSystemMessage(message));
     chatRoomConnection.on("ReceiveMessage", (user, message, messageId) => addMessageToChat(user, message, messageId));
     chatRoomConnection.on("UpdateMessage", (messageId, newMessage, user) => updateMessageInChat(messageId, newMessage, user));
     chatRoomConnection.on("DeleteMessage", (messageId, user) => deleteMessageFromChat(messageId, user));
 
-    // UI
+    // WebRTC handlers (unchanged)
+    webRtcConnection.on("ReceiveSignal", (senderConnectionId, type, data) => {
+        if (type === 'offer') {
+            handleOffer(senderConnectionId, data);
+        } else if (type === 'answer') {
+            handleAnswer(data);
+        } else if (type === 'candidate') {
+            handleCandidate(data);
+        }
+    });
+
+    webRtcConnection.on("OnlineUsers", (users) => {
+        onlineUsersList.innerHTML = '';
+        users.forEach(user => {
+            if (user !== webRtcConnection.connectionId) {
+                const li = document.createElement('li');
+                li.textContent = user;
+                li.onclick = () => initiateCall(user);
+                onlineUsersList.appendChild(li);
+            }
+        });
+        onlineUsersContainer.style.display = 'block';
+    });
+
+    // Device management functions
+    async function getDevices() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const cameras = devices.filter(device => device.kind === 'videoinput');
+            const microphones = devices.filter(device => device.kind === 'audioinput');
+            
+            populateSelect(cameraSelect, cameras);
+            populateSelect(microphoneSelect, microphones);
+            
+            return { cameras, microphones };
+        } catch (err) {
+            showError('Error enumerating devices: ' + err.message);
+            return { cameras: [], microphones: [] };
+        }
+    }
+
+    function populateSelect(selectElement, devices) {
+        selectElement.innerHTML = '';
+        devices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `Unknown ${device.kind} (${device.deviceId.slice(0, 5)}...)`;
+            selectElement.appendChild(option);
+        });
+    }
+
+    async function startLocalStream() {
+        try {
+            const constraints = {
+                video: {
+                    deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: microphoneSelect.value ? { deviceId: { exact: microphoneSelect.value } } : true
+            };
+
+            // Try with video first
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // If no video, try audio only
+            if (!localStream.getVideoTracks().length) {
+                showWarning('Video device not found, continuing with audio only');
+                constraints.video = false;
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            }
+
+            // If no audio either, try without any devices
+            if (!localStream.getAudioTracks().length && !localStream.getVideoTracks().length) {
+                showWarning('No media devices found. You can still chat without audio/video');
+                localStream = null;
+                startButton.disabled = true;
+                return;
+            }
+
+            localVideo.srcObject = localStream;
+            startButton.disabled = true;
+            callButton.disabled = false;
+            await webRtcConnection.invoke("GetOnlineUsers");
+            hideError();
+        } catch (err) {
+            showError('Error accessing media devices: ' + err.message);
+            startButton.disabled = false;
+        }
+    }
+
+    function showError(message) {
+        errorContainer.textContent = message;
+        errorContainer.style.display = 'block';
+    }
+
+    function showWarning(message) {
+        addSystemMessage('Warning: ' + message);
+    }
+
+    function hideError() {
+        errorContainer.style.display = 'none';
+    }
+
+    // WebRTC functions (unchanged except for error handling)
+    function initiateCall(targetConnectionId) {
+        if (!localStream) {
+            showError('No local media stream available');
+            return;
+        }
+
+        try {
+            currentCallConnectionId = targetConnectionId;
+            createPeerConnection();
+            
+            peerConnection.createOffer()
+                .then(offer => peerConnection.setLocalDescription(offer))
+                .then(() => {
+                    webRtcConnection.invoke("SendSignal", currentCallConnectionId, "offer", peerConnection.localDescription);
+                })
+                .catch(err => {
+                    showError('Error creating offer: ' + err.message);
+                    hangUp();
+                });
+            
+            callButton.disabled = true;
+            hangupButton.disabled = false;
+        } catch (err) {
+            showError('Error initiating call: ' + err.message);
+        }
+    }
+
+    function createPeerConnection() {
+        try {
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Add local stream to connection
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+            }
+            
+            // Set up remote stream
+            peerConnection.ontrack = event => {
+                remoteVideo.srcObject = event.streams[0];
+            };
+            
+            // Handle ICE candidates
+            peerConnection.onicecandidate = event => {
+                if (event.candidate && currentCallConnectionId) {
+                    webRtcConnection.invoke("SendSignal", currentCallConnectionId, "candidate", event.candidate);
+                }
+            };
+            
+            peerConnection.oniceconnectionstatechange = () => {
+                if (peerConnection.iceConnectionState === 'failed') {
+                    showError('Connection failed');
+                    hangUp();
+                }
+            };
+        } catch (err) {
+            showError('Error creating peer connection: ' + err.message);
+            throw err;
+        }
+    }
+
+    function handleOffer(senderConnectionId, offer) {
+        try {
+            if (!peerConnection) {
+                createPeerConnection();
+            }
+            
+            currentCallConnectionId = senderConnectionId;
+            
+            peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => peerConnection.createAnswer())
+                .then(answer => peerConnection.setLocalDescription(answer))
+                .then(() => {
+                    webRtcConnection.invoke("SendSignal", senderConnectionId, "answer", peerConnection.localDescription);
+                })
+                .catch(err => {
+                    showError('Error handling offer: ' + err.message);
+                    hangUp();
+                });
+            
+            callButton.disabled = true;
+            hangupButton.disabled = false;
+        } catch (err) {
+            showError('Error handling offer: ' + err.message);
+        }
+    }
+
+    function handleAnswer(answer) {
+        try {
+            peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        } catch (err) {
+            showError('Error handling answer: ' + err.message);
+        }
+    }
+
+    function handleCandidate(candidate) {
+        try {
+            peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+            showError('Error handling ICE candidate: ' + err.message);
+        }
+    }
+
+    function hangUp() {
+        try {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            if (localVideo.srcObject) {
+                localVideo.srcObject.getTracks().forEach(track => track.stop());
+                localVideo.srcObject = null;
+            }
+            
+            if (remoteVideo.srcObject) {
+                remoteVideo.srcObject = null;
+            }
+            
+            currentCallConnectionId = null;
+            callButton.disabled = false;
+            hangupButton.disabled = true;
+            
+            // Reset start button if no stream is available
+            if (!localStream) {
+                startButton.disabled = false;
+            }
+        } catch (err) {
+            showError('Error hanging up: ' + err.message);
+        }
+    }
+
+    // UI functions (unchanged)
     function addMessageToChat(user, message, messageId) {
         const li = document.createElement("li");
         li.className = "chat-message";
@@ -139,17 +417,15 @@
         }
     }
 
-    async function startConnection() {
-        try {
-            await chatRoomConnection.start();
-            await chatRoomConnection.invoke("JoinRoom", roomId);
-            addSystemMessage(`Вы присоединились к комнате ${roomId}`);
-        } catch (err) {
-            addSystemMessage("Ошибка подключения. Повтор через 5 секунд...");
-            setTimeout(startConnection, 5000);
+    // Event listeners
+    startButton.addEventListener('click', startLocalStream);
+    callButton.addEventListener('click', () => {
+        if (currentCallConnectionId) {
+            initiateCall(currentCallConnectionId);
         }
-    }
-
+    });
+    hangupButton.addEventListener('click', hangUp);
+    
     sendButton.addEventListener("click", sendMessage);
     messageInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
@@ -158,19 +434,40 @@
     window.addEventListener("beforeunload", async () => {
         try {
             await chatRoomConnection.invoke("LeaveRoom", roomId);
+            hangUp();
         } catch {}
     });
 
+    // Make functions global
     window.startEditMessage = startEditMessage;
     window.deleteMessage = deleteMessage;
     window.confirmEdit = confirmEdit;
     window.cancelEdit = cancelEdit;
 
-    startConnection();
+    // Start connections
+    async function startConnections() {
+        try {
+            await Promise.all([
+                chatRoomConnection.start(),
+                webRtcConnection.start()
+            ]);
+            
+            await chatRoomConnection.invoke("JoinRoom", roomId);
+            addSystemMessage(`Вы присоединились к комнате ${roomId}`);
+            
+            // Enumerate devices after connections are established
+            await getDevices();
+        } catch (err) {
+            console.error('Connection error:', err);
+            addSystemMessage("Ошибка подключения. Повтор через 5 секунд...");
+            setTimeout(startConnections, 5000);
+        }
+    }
+
+    startConnections();
 </script>
 
 <style>
-    
     body {
         margin: 0;
         padding: 0;
@@ -194,12 +491,75 @@
         padding: 20px;
         background-color: #fff;
         overflow-y: auto;
+        display: flex;
+        flex-direction: column;
     }
     
-    .placeholder-content {
-        text-align: center;
-        margin-top: 50px;
-        color: #666;
+    .video-container {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .video-container video {
+        background: #000;
+        width: 50%;
+        max-height: 300px;
+        border-radius: 8px;
+    }
+    
+    .device-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .device-select {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .webrtc-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .webrtc-controls button {
+        padding: 8px 16px;
+        background: #2c5e9e;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .webrtc-controls button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    
+    #onlineUsersList li {
+        cursor: pointer;
+        padding: 5px;
+        margin: 5px 0;
+        background: #f0f0f0;
+        border-radius: 4px;
+    }
+    
+    #onlineUsersList li:hover {
+        background: #e0e0e0;
+    }
+    
+    .error-message {
+        color: #d9534f;
+        background-color: #f2dede;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        display: none;
     }
     
     /* Стили для чата */
@@ -218,7 +578,7 @@
         margin: 15px;
         padding-bottom: 15px;
         border-bottom: 1px solid #eee;
-        flex-shrink: 0; /* Запрещаем сжатие */
+        flex-shrink: 0;
     }
     
     .user-info {
@@ -232,7 +592,7 @@
         display: flex;
         flex-direction: column;
         flex: 1;
-        min-height: 0; /* Важно для правильного скролла */
+        min-height: 0;
         padding: 0 15px;
     }
 
@@ -293,7 +653,7 @@
         display: flex;
         gap: 10px;
         margin-bottom: 15px;
-        flex-shrink: 0; /* Фиксируем высоту */
+        flex-shrink: 0;
         padding: 10px 0;
     }
     
