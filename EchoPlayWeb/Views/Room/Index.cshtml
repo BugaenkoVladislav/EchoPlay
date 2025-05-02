@@ -3,30 +3,57 @@
 }
 
 <div class="app-container">
-    <!-- Основное содержимое страницы будет слева -->
+    <!-- Основная область контента -->
     <div class="content-area">
-        <!-- Видео элементы для WebRTC -->
+        <!-- Видео элементы -->
         <div class="video-container">
-            <video id="localVideo" autoplay muted playsinline></video>
-            <video id="remoteVideo" autoplay playsinline></video>
+            <video id="localVideo" autoplay muted playsinline style="display:none;"></video>
+            <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
+            <div id="audioOnlyIndicator" style="display:none;">
+                <div class="audio-call-icon">🎤</div>
+                <div>Аудио-звонок</div>
+            </div>
+            <div id="noDevicesMessage" class="warning-message" style="display:none;">
+                Устройства не найдены. Вы можете продолжать текстовый чат.
+            </div>
         </div>
-        <div class="device-controls">
-            <select id="cameraSelect" class="device-select"></select>
-            <select id="microphoneSelect" class="device-select"></select>
+
+        <!-- Управление устройствами -->
+        <div class="device-controls" id="deviceControls" style="display:none;">
+            <div class="device-select-group">
+                <label>
+                    <input type="checkbox" id="enableVideo"> Использовать камеру
+                </label>
+                <select id="cameraSelect" class="device-select" disabled></select>
+            </div>
+            <div class="device-select-group">
+                <label for="microphoneSelect">Микрофон:</label>
+                <select id="microphoneSelect" class="device-select" disabled></select>
+            </div>
+            <div class="device-select-group">
+                <label for="speakerSelect">Динамики:</label>
+                <select id="speakerSelect" class="device-select" disabled></select>
+            </div>
         </div>
+
+        <!-- Кнопки управления звонком -->
         <div class="webrtc-controls">
-            <button id="startButton">Start Devices</button>
-            <button id="callButton" disabled>Call</button>
-            <button id="hangupButton" disabled>Hang Up</button>
+            <button id="requestAccessBtn">Разрешить доступ к устройствам</button>
+            <button id="callButton" disabled>Позвонить</button>
+            <button id="hangupButton" disabled>Завершить</button>
         </div>
+
+        <!-- Список пользователей -->
         <div id="onlineUsersContainer" style="display: none;">
-            <h3>Online Users:</h3>
+            <h3>Онлайн пользователи:</h3>
             <ul id="onlineUsersList"></ul>
         </div>
-        <div id="errorContainer" class="error-message"></div>
+
+        <!-- Сообщения об ошибках -->
+        <div id="errorContainer" class="error-message" style="display:none;"></div>
     </div>
 
-    <!-- Чат справа -->
+    <!-- Боковая панель чата -->
     <div class="chat-container">
         <h1>Чат комната: <span id="roomIdDisplay">@ViewData["RoomId"]</span></h1>
         <div class="user-info">Вы вошли как: <span id="currentUserDisplay"></span></div>
@@ -43,39 +70,54 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 <script>
-    // Chat room variables
+    // Конфигурация
     const roomId = "@ViewData["RoomId"]";
     const currentUser = "User_" + Math.random().toString(36).substring(2, 8);
     const serverUrl = "https://localhost:7222";
 
-    // DOM elements
-    const messagesList = document.getElementById("messagesList");
-    const messageInput = document.getElementById("messageInput");
-    const sendButton = document.getElementById("sendButton");
-    const currentUserDisplay = document.getElementById("currentUserDisplay");
-    
-    // WebRTC elements
-    const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
-    const startButton = document.getElementById('startButton');
-    const callButton = document.getElementById('callButton');
-    const hangupButton = document.getElementById('hangupButton');
-    const onlineUsersList = document.getElementById('onlineUsersList');
-    const onlineUsersContainer = document.getElementById('onlineUsersContainer');
-    const cameraSelect = document.getElementById('cameraSelect');
-    const microphoneSelect = document.getElementById('microphoneSelect');
-    const errorContainer = document.getElementById('errorContainer');
+    // Состояние приложения
+    const appState = {
+        localStream: null,
+        peerConnection: null,
+        currentCallConnectionId: null,
+        hasAudioPermission: false,
+        hasVideoPermission: false,
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
 
-    // WebRTC variables
-    let localStream;
-    let peerConnection;
-    let currentCallConnectionId = null;
-    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    // Элементы DOM
+    const elements = {
+        // Видео элементы
+        localVideo: document.getElementById('localVideo'),
+        remoteVideo: document.getElementById('remoteVideo'),
+        audioOnlyIndicator: document.getElementById('audioOnlyIndicator'),
+        noDevicesMessage: document.getElementById('noDevicesMessage'),
+        
+        // Управление устройствами
+        enableVideo: document.getElementById('enableVideo'),
+        cameraSelect: document.getElementById('cameraSelect'),
+        microphoneSelect: document.getElementById('microphoneSelect'),
+        speakerSelect: document.getElementById('speakerSelect'),
+        deviceControls: document.getElementById('deviceControls'),
+        
+        // Кнопки
+        requestAccessBtn: document.getElementById('requestAccessBtn'),
+        callButton: document.getElementById('callButton'),
+        hangupButton: document.getElementById('hangupButton'),
+        
+        // Чат
+        messagesList: document.getElementById('messagesList'),
+        messageInput: document.getElementById('messageInput'),
+        sendButton: document.getElementById('sendButton'),
+        currentUserDisplay: document.getElementById('currentUserDisplay'),
+        
+        // Пользователи и ошибки
+        onlineUsersList: document.getElementById('onlineUsersList'),
+        onlineUsersContainer: document.getElementById('onlineUsersContainer'),
+        errorContainer: document.getElementById('errorContainer')
+    };
 
-    // Set current user display
-    currentUserDisplay.textContent = currentUser;
-
-    // Initialize SignalR connections
+    // Инициализация SignalR соединений
     const chatRoomConnection = new signalR.HubConnectionBuilder()
         .withUrl(`${serverUrl}/chatHub`)
         .configureLogging(signalR.LogLevel.Information)
@@ -86,252 +128,16 @@
         .configureLogging(signalR.LogLevel.Information)
         .build();
 
-    // Chat room handlers (unchanged)
-    chatRoomConnection.on("Notify", (message) => addSystemMessage(message));
-    chatRoomConnection.on("ReceiveMessage", (user, message, messageId) => addMessageToChat(user, message, messageId));
-    chatRoomConnection.on("UpdateMessage", (messageId, newMessage, user) => updateMessageInChat(messageId, newMessage, user));
-    chatRoomConnection.on("DeleteMessage", (messageId, user) => deleteMessageFromChat(messageId, user));
-
-    // WebRTC handlers (unchanged)
-    webRtcConnection.on("ReceiveSignal", (senderConnectionId, type, data) => {
-        if (type === 'offer') {
-            handleOffer(senderConnectionId, data);
-        } else if (type === 'answer') {
-            handleAnswer(data);
-        } else if (type === 'candidate') {
-            handleCandidate(data);
-        }
-    });
-
-    webRtcConnection.on("OnlineUsers", (users) => {
-        onlineUsersList.innerHTML = '';
-        users.forEach(user => {
-            if (user !== webRtcConnection.connectionId) {
-                const li = document.createElement('li');
-                li.textContent = user;
-                li.onclick = () => initiateCall(user);
-                onlineUsersList.appendChild(li);
-            }
-        });
-        onlineUsersContainer.style.display = 'block';
-    });
-
-    // Device management functions
-    async function getDevices() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const cameras = devices.filter(device => device.kind === 'videoinput');
-            const microphones = devices.filter(device => device.kind === 'audioinput');
-            
-            populateSelect(cameraSelect, cameras);
-            populateSelect(microphoneSelect, microphones);
-            
-            return { cameras, microphones };
-        } catch (err) {
-            showError('Error enumerating devices: ' + err.message);
-            return { cameras: [], microphones: [] };
-        }
+    // ==================== Функции чата ====================
+    function addSystemMessage(message) {
+        const li = document.createElement("li");
+        li.className = "system-message";
+        li.textContent = message;
+        elements.messagesList.appendChild(li);
+        scrollToBottom();
     }
 
-    function populateSelect(selectElement, devices) {
-        selectElement.innerHTML = '';
-        devices.forEach(device => {
-            const option = document.createElement('option');
-            option.value = device.deviceId;
-            option.text = device.label || `Unknown ${device.kind} (${device.deviceId.slice(0, 5)}...)`;
-            selectElement.appendChild(option);
-        });
-    }
-
-    async function startLocalStream() {
-        try {
-            const constraints = {
-                video: {
-                    deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined,
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                },
-                audio: microphoneSelect.value ? { deviceId: { exact: microphoneSelect.value } } : true
-            };
-
-            // Try with video first
-            localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            
-            // If no video, try audio only
-            if (!localStream.getVideoTracks().length) {
-                showWarning('Video device not found, continuing with audio only');
-                constraints.video = false;
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            }
-
-            // If no audio either, try without any devices
-            if (!localStream.getAudioTracks().length && !localStream.getVideoTracks().length) {
-                showWarning('No media devices found. You can still chat without audio/video');
-                localStream = null;
-                startButton.disabled = true;
-                return;
-            }
-
-            localVideo.srcObject = localStream;
-            startButton.disabled = true;
-            callButton.disabled = false;
-            await webRtcConnection.invoke("GetOnlineUsers");
-            hideError();
-        } catch (err) {
-            showError('Error accessing media devices: ' + err.message);
-            startButton.disabled = false;
-        }
-    }
-
-    function showError(message) {
-        errorContainer.textContent = message;
-        errorContainer.style.display = 'block';
-    }
-
-    function showWarning(message) {
-        addSystemMessage('Warning: ' + message);
-    }
-
-    function hideError() {
-        errorContainer.style.display = 'none';
-    }
-
-    // WebRTC functions (unchanged except for error handling)
-    function initiateCall(targetConnectionId) {
-        if (!localStream) {
-            showError('No local media stream available');
-            return;
-        }
-
-        try {
-            currentCallConnectionId = targetConnectionId;
-            createPeerConnection();
-            
-            peerConnection.createOffer()
-                .then(offer => peerConnection.setLocalDescription(offer))
-                .then(() => {
-                    webRtcConnection.invoke("SendSignal", currentCallConnectionId, "offer", peerConnection.localDescription);
-                })
-                .catch(err => {
-                    showError('Error creating offer: ' + err.message);
-                    hangUp();
-                });
-            
-            callButton.disabled = true;
-            hangupButton.disabled = false;
-        } catch (err) {
-            showError('Error initiating call: ' + err.message);
-        }
-    }
-
-    function createPeerConnection() {
-        try {
-            peerConnection = new RTCPeerConnection(configuration);
-            
-            // Add local stream to connection
-            if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-            }
-            
-            // Set up remote stream
-            peerConnection.ontrack = event => {
-                remoteVideo.srcObject = event.streams[0];
-            };
-            
-            // Handle ICE candidates
-            peerConnection.onicecandidate = event => {
-                if (event.candidate && currentCallConnectionId) {
-                    webRtcConnection.invoke("SendSignal", currentCallConnectionId, "candidate", event.candidate);
-                }
-            };
-            
-            peerConnection.oniceconnectionstatechange = () => {
-                if (peerConnection.iceConnectionState === 'failed') {
-                    showError('Connection failed');
-                    hangUp();
-                }
-            };
-        } catch (err) {
-            showError('Error creating peer connection: ' + err.message);
-            throw err;
-        }
-    }
-
-    function handleOffer(senderConnectionId, offer) {
-        try {
-            if (!peerConnection) {
-                createPeerConnection();
-            }
-            
-            currentCallConnectionId = senderConnectionId;
-            
-            peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
-                .then(() => peerConnection.createAnswer())
-                .then(answer => peerConnection.setLocalDescription(answer))
-                .then(() => {
-                    webRtcConnection.invoke("SendSignal", senderConnectionId, "answer", peerConnection.localDescription);
-                })
-                .catch(err => {
-                    showError('Error handling offer: ' + err.message);
-                    hangUp();
-                });
-            
-            callButton.disabled = true;
-            hangupButton.disabled = false;
-        } catch (err) {
-            showError('Error handling offer: ' + err.message);
-        }
-    }
-
-    function handleAnswer(answer) {
-        try {
-            peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-        } catch (err) {
-            showError('Error handling answer: ' + err.message);
-        }
-    }
-
-    function handleCandidate(candidate) {
-        try {
-            peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) {
-            showError('Error handling ICE candidate: ' + err.message);
-        }
-    }
-
-    function hangUp() {
-        try {
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
-            }
-            
-            if (localVideo.srcObject) {
-                localVideo.srcObject.getTracks().forEach(track => track.stop());
-                localVideo.srcObject = null;
-            }
-            
-            if (remoteVideo.srcObject) {
-                remoteVideo.srcObject = null;
-            }
-            
-            currentCallConnectionId = null;
-            callButton.disabled = false;
-            hangupButton.disabled = true;
-            
-            // Reset start button if no stream is available
-            if (!localStream) {
-                startButton.disabled = false;
-            }
-        } catch (err) {
-            showError('Error hanging up: ' + err.message);
-        }
-    }
-
-    // UI functions (unchanged)
-    function addMessageToChat(user, message, messageId) {
+    function addChatMessage(user, message, messageId) {
         const li = document.createElement("li");
         li.className = "chat-message";
         li.setAttribute("data-message-id", messageId);
@@ -345,107 +151,418 @@
             </div>
             <div id="content-${messageId}">${message}</div>
         `;
-        messagesList.appendChild(li);
+        elements.messagesList.appendChild(li);
         scrollToBottom();
-    }
-
-    function updateMessageInChat(messageId, newMessage, user) {
-        const el = document.getElementById(`content-${messageId}`);
-        if (el) {
-            el.textContent = newMessage;
-            addSystemMessage(`${user} обновил сообщение`);
-        }
-    }
-
-    function deleteMessageFromChat(messageId, user) {
-        const li = document.querySelector(`li[data-message-id="${messageId}"]`);
-        if (li) {
-            li.remove();
-            addSystemMessage(`${user} удалил сообщение`);
-        }
-    }
-
-    function addSystemMessage(msg) {
-        const li = document.createElement("li");
-        li.className = "system-message";
-        li.textContent = msg;
-        messagesList.appendChild(li);
-        scrollToBottom();
-    }
-
-    function scrollToBottom() {
-        messagesList.scrollTop = messagesList.scrollHeight;
     }
 
     async function sendMessage() {
-        const message = messageInput.value.trim();
+        const message = elements.messageInput.value.trim();
         if (message && chatRoomConnection.state === signalR.HubConnectionState.Connected) {
             try {
                 await chatRoomConnection.invoke("SendMessage", roomId, currentUser, message);
-                messageInput.value = "";
+                elements.messageInput.value = "";
             } catch (err) {
-                addSystemMessage("Не удалось отправить сообщение");
+                showError("Не удалось отправить сообщение");
             }
         }
     }
 
-    async function startEditMessage(messageId) {
-        const content = document.getElementById(`content-${messageId}`);
-        const currentText = content.textContent;
-        content.innerHTML = `
-            <input type="text" id="edit-input-${messageId}" value="${currentText}" />
-            <button onclick="confirmEdit('${messageId}')">✓</button>
-            <button onclick="cancelEdit('${messageId}', '${currentText}')">✕</button>
-        `;
-    }
-
-    async function confirmEdit(messageId) {
-        const newMessage = document.getElementById(`edit-input-${messageId}`).value.trim();
-        if (newMessage) {
-            await chatRoomConnection.invoke("UpdateMessage", roomId, currentUser, messageId, newMessage);
-        }
-    }
-
-    function cancelEdit(messageId, originalText) {
-        const content = document.getElementById(`content-${messageId}`);
-        content.textContent = originalText;
-    }
-
-    async function deleteMessage(messageId) {
-        if (confirm("Удалить сообщение?")) {
-            await chatRoomConnection.invoke("DeleteMessage", roomId, currentUser, messageId);
-        }
-    }
-
-    // Event listeners
-    startButton.addEventListener('click', startLocalStream);
-    callButton.addEventListener('click', () => {
-        if (currentCallConnectionId) {
-            initiateCall(currentCallConnectionId);
-        }
-    });
-    hangupButton.addEventListener('click', hangUp);
-    
-    sendButton.addEventListener("click", sendMessage);
-    messageInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") sendMessage();
-    });
-
-    window.addEventListener("beforeunload", async () => {
+    // ==================== WebRTC функции ====================
+    async function requestDeviceAccess() {
         try {
-            await chatRoomConnection.invoke("LeaveRoom", roomId);
-            hangUp();
-        } catch {}
-    });
+            // Пытаемся получить доступ хотя бы к микрофону
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                .catch(async () => {
+                    // Если не получилось с микрофоном, пробуем с видео
+                    return await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                });
 
-    // Make functions global
-    window.startEditMessage = startEditMessage;
-    window.deleteMessage = deleteMessage;
-    window.confirmEdit = confirmEdit;
-    window.cancelEdit = cancelEdit;
+            // Получаем список устройств
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            
+            // Проверяем какие разрешения есть
+            appState.hasAudioPermission = devices.some(d => d.kind === 'audioinput' && d.label !== '');
+            appState.hasVideoPermission = devices.some(d => d.kind === 'videoinput' && d.label !== '');
 
-    // Start connections
-    async function startConnections() {
+            // Останавливаем поток (нам нужно только разрешение)
+            stream.getTracks().forEach(track => track.stop());
+
+            // Обновляем интерфейс
+            await updateDeviceLists();
+            elements.deviceControls.style.display = 'block';
+            elements.requestAccessBtn.textContent = 'Обновить устройства';
+            hideError();
+
+            // Если нет ни одного устройства
+            if (!appState.hasAudioPermission && !appState.hasVideoPermission) {
+                elements.noDevicesMessage.style.display = 'block';
+                return false;
+            }
+
+            return true;
+        } catch (err) {
+            console.error('Ошибка доступа к устройствам:', err);
+            showError('Не удалось получить доступ к устройствам. Вы можете продолжать текстовый чат.');
+            elements.noDevicesMessage.style.display = 'block';
+            return false;
+        }
+    }
+
+    async function updateDeviceLists() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            
+            const cameras = devices.filter(d => d.kind === 'videoinput');
+            const microphones = devices.filter(d => d.kind === 'audioinput');
+            const speakers = devices.filter(d => d.kind === 'audiooutput');
+            
+            populateSelect(elements.cameraSelect, cameras, 'Камера не найдена');
+            populateSelect(elements.microphoneSelect, microphones, 'Микрофон не найден');
+            populateSelect(elements.speakerSelect, speakers, 'Динамики не найдены');
+            
+            // Обновляем состояние чекбокса видео
+            elements.enableVideo.disabled = cameras.length === 0;
+            elements.enableVideo.checked = cameras.length > 0 && appState.hasVideoPermission;
+            
+            // Активируем select'ы если есть устройства
+            elements.cameraSelect.disabled = cameras.length === 0;
+            elements.microphoneSelect.disabled = microphones.length === 0;
+            elements.speakerSelect.disabled = speakers.length === 0;
+
+            return { cameras, microphones, speakers };
+        } catch (err) {
+            console.error('Ошибка обновления устройств:', err);
+            showError('Ошибка получения списка устройств');
+            return { cameras: [], microphones: [], speakers: [] };
+        }
+    }
+
+    function populateSelect(selectElement, devices, emptyMessage) {
+        selectElement.innerHTML = '';
+        
+        if (devices.length === 0) {
+            const option = document.createElement('option');
+            option.text = emptyMessage;
+            selectElement.appendChild(option);
+            selectElement.disabled = true;
+            return;
+        }
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.text = 'По умолчанию';
+        defaultOption.value = '';
+        selectElement.appendChild(defaultOption);
+        
+        devices.forEach(device => {
+            const label = device.label || `Устройство ${device.kind}`;
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = label;
+            selectElement.appendChild(option);
+        });
+        
+        selectElement.disabled = false;
+    }
+
+    async function startLocalStream() {
+        try {
+            const constraints = {
+                audio: elements.microphoneSelect.value ? 
+                    { deviceId: { exact: elements.microphoneSelect.value } } : true,
+                video: elements.enableVideo.checked && elements.cameraSelect.value ? 
+                    { deviceId: { exact: elements.cameraSelect.value } } : false
+            };
+
+            appState.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Настройка отображения
+            if (constraints.video) {
+                elements.localVideo.srcObject = appState.localStream;
+                elements.localVideo.style.display = 'block';
+                elements.audioOnlyIndicator.style.display = 'none';
+            } else {
+                elements.localVideo.style.display = 'none';
+                elements.audioOnlyIndicator.style.display = 'block';
+            }
+            
+            // Настройка динамиков
+            if (elements.speakerSelect.value && 'setSinkId' in elements.remoteVideo) {
+                await elements.remoteVideo.setSinkId(elements.speakerSelect.value);
+            }
+            
+            elements.callButton.disabled = false;
+            await webRtcConnection.invoke("GetOnlineUsers");
+        } catch (err) {
+            console.error('Ошибка запуска потока:', err);
+            showError('Ошибка запуска медиапотока: ' + err.message);
+            elements.callButton.disabled = true;
+        }
+    }
+
+    function initiateCall(targetConnectionId) {
+        if (!appState.localStream) {
+            showError('Нет доступа к микрофону');
+            return;
+        }
+
+        try {
+            appState.currentCallConnectionId = targetConnectionId;
+            createPeerConnection();
+            
+            // Добавляем треки в соединение
+            appState.localStream.getTracks().forEach(track => {
+                appState.peerConnection.addTrack(track, appState.localStream);
+            });
+            
+            // Создаем offer
+            appState.peerConnection.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: elements.enableVideo.checked
+            })
+            .then(offer => appState.peerConnection.setLocalDescription(offer))
+            .then(() => {
+                webRtcConnection.invoke("SendSignal", appState.currentCallConnectionId, "offer", appState.peerConnection.localDescription);
+            })
+            .catch(err => {
+                console.error('Ошибка создания offer:', err);
+                showError('Ошибка создания предложения звонка');
+                hangUp();
+            });
+            
+            elements.callButton.disabled = true;
+            elements.hangupButton.disabled = false;
+        } catch (err) {
+            console.error('Ошибка инициации звонка:', err);
+            showError('Ошибка начала звонка');
+        }
+    }
+
+    function createPeerConnection() {
+        try {
+            appState.peerConnection = new RTCPeerConnection({ iceServers: appState.iceServers });
+            
+            // Обработка удаленного потока
+            appState.peerConnection.ontrack = event => {
+                if (event.track.kind === 'video') {
+                    elements.remoteVideo.srcObject = event.streams[0];
+                    elements.remoteVideo.style.display = 'block';
+                    elements.audioOnlyIndicator.style.display = 'none';
+                } else if (event.track.kind === 'audio') {
+                    if (!elements.remoteVideo.srcObject) {
+                        elements.remoteVideo.srcObject = event.streams[0];
+                    }
+                    elements.remoteVideo.style.display = 'none';
+                    elements.audioOnlyIndicator.style.display = 'block';
+                }
+            };
+            
+            appState.peerConnection.onicecandidate = event => {
+                if (event.candidate && appState.currentCallConnectionId) {
+                    webRtcConnection.invoke("SendSignal", appState.currentCallConnectionId, "candidate", event.candidate);
+                }
+            };
+            
+            appState.peerConnection.oniceconnectionstatechange = () => {
+                if (appState.peerConnection.iceConnectionState === 'failed') {
+                    showError('Соединение прервано');
+                    hangUp();
+                }
+            };
+        } catch (err) {
+            console.error('Ошибка создания соединения:', err);
+            throw err;
+        }
+    }
+
+    function hangUp() {
+        try {
+            if (appState.peerConnection) {
+                appState.peerConnection.close();
+                appState.peerConnection = null;
+            }
+            
+            if (appState.localStream) {
+                appState.localStream.getTracks().forEach(track => track.stop());
+                appState.localStream = null;
+            }
+            
+            elements.localVideo.srcObject = null;
+            elements.localVideo.style.display = 'none';
+            
+            elements.remoteVideo.srcObject = null;
+            elements.remoteVideo.style.display = 'none';
+            
+            elements.audioOnlyIndicator.style.display = 'none';
+            appState.currentCallConnectionId = null;
+            elements.callButton.disabled = false;
+            elements.hangupButton.disabled = true;
+        } catch (err) {
+            console.error('Ошибка завершения звонка:', err);
+            showError('Ошибка при завершении звонка');
+        }
+    }
+
+    // ==================== Вспомогательные функции ====================
+    function showError(message) {
+        elements.errorContainer.textContent = message;
+        elements.errorContainer.style.display = 'block';
+    }
+
+    function hideError() {
+        elements.errorContainer.style.display = 'none';
+    }
+
+    function scrollToBottom() {
+        elements.messagesList.scrollTop = elements.messagesList.scrollHeight;
+    }
+
+    // ==================== Обработчики событий ====================
+    function setupEventListeners() {
+        // Кнопка запроса доступа
+        elements.requestAccessBtn.addEventListener('click', async () => {
+            const success = await requestDeviceAccess();
+            if (success) {
+                await startLocalStream();
+            }
+        });
+
+        // Чекбокс видео
+        elements.enableVideo.addEventListener('change', async () => {
+            if (appState.localStream) {
+                const videoTracks = appState.localStream.getVideoTracks();
+                if (elements.enableVideo.checked) {
+                    await startLocalStream();
+                } else {
+                    videoTracks.forEach(track => track.stop());
+                    elements.localVideo.style.display = 'none';
+                    elements.audioOnlyIndicator.style.display = 'block';
+                }
+            }
+        });
+
+        // Кнопки звонка
+        elements.callButton.addEventListener('click', () => {
+            if (appState.currentCallConnectionId) {
+                initiateCall(appState.currentCallConnectionId);
+            }
+        });
+
+        elements.hangupButton.addEventListener('click', hangUp);
+
+        // Отправка сообщения
+        elements.sendButton.addEventListener("click", sendMessage);
+        elements.messageInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendMessage();
+        });
+
+        // При закрытии страницы
+        window.addEventListener("beforeunload", async () => {
+            try {
+                await chatRoomConnection.invoke("LeaveRoom", roomId);
+                hangUp();
+            } catch (err) {
+                console.error('Ошибка при закрытии:', err);
+            }
+        });
+    }
+
+    // ==================== Инициализация ====================
+    async function initialize() {
+        // Установка имени пользователя
+        elements.currentUserDisplay.textContent = currentUser;
+
+        // Обработчики SignalR
+        chatRoomConnection.on("Notify", addSystemMessage);
+        chatRoomConnection.on("ReceiveMessage", addChatMessage);
+        chatRoomConnection.on("UpdateMessage", (messageId, newMessage, user) => {
+            const el = document.getElementById(`content-${messageId}`);
+            if (el) {
+                el.textContent = newMessage;
+                addSystemMessage(`${user} обновил сообщение`);
+            }
+        });
+        chatRoomConnection.on("DeleteMessage", (messageId, user) => {
+            const li = document.querySelector(`li[data-message-id="${messageId}"]`);
+            if (li) {
+                li.remove();
+                addSystemMessage(`${user} удалил сообщение`);
+            }
+        });
+
+        webRtcConnection.on("ReceiveSignal", (senderConnectionId, type, data) => {
+            if (type === 'offer') {
+                if (!appState.peerConnection) createPeerConnection();
+                appState.currentCallConnectionId = senderConnectionId;
+                
+                appState.peerConnection.setRemoteDescription(new RTCSessionDescription(data))
+                    .then(() => appState.peerConnection.createAnswer({
+                        offerToReceiveAudio: true,
+                        offerToReceiveVideo: elements.enableVideo.checked
+                    }))
+                    .then(answer => appState.peerConnection.setLocalDescription(answer))
+                    .then(() => {
+                        webRtcConnection.invoke("SendSignal", senderConnectionId, "answer", appState.peerConnection.localDescription);
+                    })
+                    .catch(err => {
+                        console.error('Ошибка обработки offer:', err);
+                        hangUp();
+                    });
+                
+                elements.callButton.disabled = true;
+                elements.hangupButton.disabled = false;
+            } else if (type === 'answer') {
+                appState.peerConnection.setRemoteDescription(new RTCSessionDescription(data));
+            } else if (type === 'candidate') {
+                appState.peerConnection.addIceCandidate(new RTCIceCandidate(data));
+            }
+        });
+
+        webRtcConnection.on("OnlineUsers", (users) => {
+            elements.onlineUsersList.innerHTML = '';
+            users.forEach(user => {
+                if (user !== webRtcConnection.connectionId) {
+                    const li = document.createElement('li');
+                    li.textContent = user;
+                    li.onclick = () => initiateCall(user);
+                    elements.onlineUsersList.appendChild(li);
+                }
+            });
+            elements.onlineUsersContainer.style.display = 'block';
+        });
+
+        // Глобальные функции
+        window.startEditMessage = async function(messageId) {
+            const content = document.getElementById(`content-${messageId}`);
+            const currentText = content.textContent;
+            content.innerHTML = `
+                <input type="text" id="edit-input-${messageId}" value="${currentText}" />
+                <button onclick="confirmEdit('${messageId}')">✓</button>
+                <button onclick="cancelEdit('${messageId}', '${currentText}')">✕</button>
+            `;
+        };
+
+        window.confirmEdit = async function(messageId) {
+            const newMessage = document.getElementById(`edit-input-${messageId}`).value.trim();
+            if (newMessage) {
+                await chatRoomConnection.invoke("UpdateMessage", roomId, currentUser, messageId, newMessage);
+            }
+        };
+
+        window.cancelEdit = function(messageId, originalText) {
+            const content = document.getElementById(`content-${messageId}`);
+            content.textContent = originalText;
+        };
+
+        window.deleteMessage = async function(messageId) {
+            if (confirm("Удалить сообщение?")) {
+                await chatRoomConnection.invoke("DeleteMessage", roomId, currentUser, messageId);
+            }
+        };
+
+        // Установка обработчиков
+        setupEventListeners();
+
+        // Запуск соединений
         try {
             await Promise.all([
                 chatRoomConnection.start(),
@@ -455,16 +572,17 @@
             await chatRoomConnection.invoke("JoinRoom", roomId);
             addSystemMessage(`Вы присоединились к комнате ${roomId}`);
             
-            // Enumerate devices after connections are established
-            await getDevices();
+            // Пытаемся получить доступ к устройствам
+            await requestDeviceAccess();
         } catch (err) {
-            console.error('Connection error:', err);
+            console.error('Ошибка инициализации:', err);
             addSystemMessage("Ошибка подключения. Повтор через 5 секунд...");
-            setTimeout(startConnections, 5000);
+            setTimeout(initialize, 5000);
         }
     }
 
-    startConnections();
+    // Запускаем приложение
+    initialize();
 </script>
 
 <style>
@@ -496,31 +614,64 @@
     }
     
     .video-container {
+        min-height: 200px;
         display: flex;
-        gap: 20px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f0f0f0;
+        border-radius: 8px;
         margin-bottom: 20px;
+        position: relative;
     }
     
     .video-container video {
-        background: #000;
-        width: 50%;
+        width: 100%;
         max-height: 300px;
-        border-radius: 8px;
-    }
-    
-    .device-controls {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 10px;
-    }
-    
-    .device-select {
-        flex: 1;
-        padding: 8px;
-        border: 1px solid #ddd;
+        background: #000;
         border-radius: 4px;
     }
     
+    #audioOnlyIndicator {
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .audio-call-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+    }
+    
+    /* Управление устройствами */
+    .device-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .device-select-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .device-select-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9em;
+        color: #555;
+    }
+    
+    .device-select {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        width: 100%;
+    }
+    
+    /* Кнопки управления */
     .webrtc-controls {
         display: flex;
         gap: 10px;
@@ -534,6 +685,7 @@
         border: none;
         border-radius: 4px;
         cursor: pointer;
+        flex: 1;
     }
     
     .webrtc-controls button:disabled {
@@ -541,28 +693,52 @@
         cursor: not-allowed;
     }
     
+    #requestAccessBtn {
+        background: #5cb85c;
+    }
+    
+    #hangupButton {
+        background: #d9534f;
+    }
+    
+    /* Список пользователей */
+    #onlineUsersList {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
     #onlineUsersList li {
-        cursor: pointer;
-        padding: 5px;
+        padding: 8px;
         margin: 5px 0;
         background: #f0f0f0;
         border-radius: 4px;
+        cursor: pointer;
     }
     
     #onlineUsersList li:hover {
         background: #e0e0e0;
     }
     
+    /* Сообщения об ошибках */
     .error-message {
         color: #d9534f;
         background-color: #f2dede;
         padding: 10px;
         border-radius: 4px;
         margin-bottom: 15px;
-        display: none;
     }
     
-    /* Стили для чата */
+    .warning-message {
+        color: #856404;
+        background-color: #fff3cd;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    /* Стили чата */
     .chat-container {
         width: 350px;
         display: flex;
@@ -570,7 +746,6 @@
         background-color: #fff;
         border-left: 1px solid #ddd;
         box-shadow: -2px 0 5px rgba(0,0,0,0.1);
-        height: calc(100vh - 120px); 
     }
     
     .chat-container h1 {
@@ -578,14 +753,12 @@
         margin: 15px;
         padding-bottom: 15px;
         border-bottom: 1px solid #eee;
-        flex-shrink: 0;
     }
     
     .user-info {
         margin: 0 15px 15px;
         font-size: 0.9em;
         color: #555;
-        flex-shrink: 0;
     }
     
     .chat-box {
@@ -605,6 +778,7 @@
         background-color: #fff;
         border: 1px solid #eee;
         border-radius: 4px;
+        max-height: 60vh;
     }
     
     .message-list li {
@@ -653,7 +827,6 @@
         display: flex;
         gap: 10px;
         margin-bottom: 15px;
-        flex-shrink: 0;
         padding: 10px 0;
     }
     
