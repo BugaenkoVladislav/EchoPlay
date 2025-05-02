@@ -319,7 +319,7 @@
             updateUIForBroadcastState(true);
             
             await webRtcConnection.invoke("JoinGroup", roomId);
-            await webRtcConnection.invoke("SendSignalToGroup", roomId, appState.currentUserId, "broadcastStarted", null);
+            await webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "broadcastStarted", null);
             
             addSystemMessage('Трансляция начата');
         } catch (err) {
@@ -349,7 +349,7 @@
 
             peerConnection.onicecandidate = event => {
                 if (event.candidate) {
-                    webRtcConnection.invoke("SendSignalToGroup", roomId, appState.currentUserId, "candidate", {
+                    webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "candidate", {
                         targetId: targetUserId,
                         candidate: event.candidate
                     }).catch(err => {
@@ -378,7 +378,7 @@
             });
             await peerConnection.setLocalDescription(offer);
             
-            await webRtcConnection.invoke("SendSignalToGroup", roomId, appState.currentUserId, "offer", {
+            await webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "offer", {
                 targetId: targetUserId,
                 offer: peerConnection.localDescription
             });
@@ -417,11 +417,11 @@
                 peerConnection.addTrack(track, appState.localStream);
             });
 
-            peerConnection.onicecandidate = event => {
+            peerConnection.onicecandidate = async event => {
                 if (event.candidate) {
-                    webRtcConnection.invoke("SendSignalToGroup", roomId, appState.currentUserId, "candidate", {
+                    await webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "answer", {
                         targetId: senderUserId,
-                        candidate: event.candidate
+                        answer: peerConnection.localDescription
                     }).catch(err => {
                         console.error('Ошибка отправки ICE candidate:', err);
                     });
