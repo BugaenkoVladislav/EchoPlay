@@ -1,7 +1,6 @@
 @{
     ViewData["Title"] = "Групповая видеоконференция";
 }
-
 <div class="app-container">
     <!-- Основная область контента -->
     <div class="content-area">
@@ -23,7 +22,7 @@
             <div class="device-select-group">
                 <label for="microphoneSelect">Микрофон:</label>
                 <select id="microphoneSelect" class="device-select"></select>
-                <button id="toggleMicBtn" class="btn-mic">Выключить микрофон</button>
+                <button id="toggleMicBtn" class="btn btn-mic">Выключить микрофон</button>
             </div>
         </div>
 
@@ -74,7 +73,8 @@
         retryCount: 0,
         maxRetries: 5,
         isInitialized: false,
-        isMicMuted: false
+        isMicMuted: false,
+        existingUsers: []
     };
 
     // Элементы DOM
@@ -100,27 +100,13 @@
     // SignalR соединения
     const chatRoomConnection = new signalR.HubConnectionBuilder()
         .withUrl(`${serverUrl}/chatHub`)
-        .withAutomaticReconnect({
-            nextRetryDelayInMilliseconds: retryContext => {
-                if (retryContext.elapsedMilliseconds < 60000) {
-                    return Math.random() * 2000 + 2000;
-                }
-                return null;
-            }
-        })
+        .withAutomaticReconnect()
         .configureLogging(signalR.LogLevel.Warning)
         .build();
 
     const webRtcConnection = new signalR.HubConnectionBuilder()
         .withUrl(`${serverUrl}/WebRTCHub`)
-        .withAutomaticReconnect({
-            nextRetryDelayInMilliseconds: retryContext => {
-                if (retryContext.elapsedMilliseconds < 60000) {
-                    return Math.random() * 2000 + 2000;
-                }
-                return null;
-            }
-        })
+        .withAutomaticReconnect()
         .configureLogging(signalR.LogLevel.Warning)
         .build();
 
@@ -174,15 +160,12 @@
     // ==================== WebRTC функции ====================
     async function requestDeviceAccess() {
         try {
-            // Запрашиваем только аудио
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const devices = await navigator.mediaDevices.enumerateDevices();
             
             appState.hasAudioPermission = devices.some(d => d.kind === 'audioinput' && d.label !== '');
             
-            // Освобождаем поток
             stream.getTracks().forEach(track => track.stop());
-
             await updateDeviceLists();
             elements.deviceControls.style.display = 'block';
             hideError();
@@ -250,15 +233,15 @@
             }
 
             const constraints = {
-                audio: elements.microphoneSelect.value ? 
-                    { deviceId: { exact: elements.microphoneSelect.value } } : true
+                audio: {
+                    deviceId: elements.microphoneSelect.value ? 
+                        { exact: elements.microphoneSelect.value } : undefined,
+                    enabled: !appState.isMicMuted
+                }
             };
 
             appState.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            
-            // Обновляем состояние микрофона
-            toggleMicrophone(!appState.isMicMuted);
-            
+            updateLocalMicIndicator();
             return true;
         } catch (err) {
             console.error('Ошибка запуска потока:', err);
@@ -267,7 +250,7 @@
         }
     }
 
-    function toggleMicrophone(enable) {
+    async function toggleMicrophone(enable) {
         if (!appState.localStream) return;
         
         appState.isMicMuted = !enable;
@@ -276,6 +259,20 @@
         });
         
         elements.toggleMicBtn.textContent = enable ? 'Выключить микрофон' : 'Включить микрофон';
+        updateLocalMicIndicator();
+        
+        try {
+            await webRtcConnection.invoke("SendMicrophoneState", roomId, appState.currentUserId, !enable);
+        } catch (err) {
+            console.error('Ошибка отправки состояния микрофона:', err);
+        }
+    }
+
+    function updateLocalMicIndicator() {
+        const indicator = document.querySelector('.local-mic-indicator');
+        if (indicator) {
+            indicator.textContent = appState.isMicMuted ? '🔇' : '🎤';
+        }
     }
 
     async function startBroadcast() {
@@ -292,9 +289,13 @@
             elements.stopBroadcastBtn.disabled = false;
             
             await webRtcConnection.invoke("JoinGroup", roomId);
-            await webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "broadcastStarted", null);
-            
             addSystemMessage('Вы подключились к аудиоконференции');
+            
+            // Добавляем индикатор для локального микрофона
+            const localIndicator = document.createElement('div');
+            localIndicator.className = 'local-mic-indicator';
+            localIndicator.textContent = appState.isMicMuted ? '🔇' : '🎤';
+            document.querySelector('.content-area').appendChild(localIndicator);
         } catch (err) {
             console.error('Ошибка начала трансляции:', err);
             showError('Ошибка подключения: ' + err.message);
@@ -302,9 +303,19 @@
         }
     }
 
+    async function connectToExistingUsers() {
+        if (!appState.isBroadcasting) return;
+        
+        for (const userId of appState.existingUsers) {
+            if (userId !== appState.currentUserId && !appState.peerConnections.has(userId)) {
+                await createPeerConnection(userId);
+            }
+        }
+    }
+
     async function createPeerConnection(targetUserId) {
         try {
-            if (appState.peerConnections.has(targetUserId) ){
+            if (appState.peerConnections.has(targetUserId)) {
                 return;
             }
 
@@ -315,7 +326,6 @@
                 sdpSemantics: 'unified-plan'
             });
             
-            // Добавляем аудио трек
             if (appState.localStream) {
                 appState.localStream.getAudioTracks().forEach(track => {
                     peerConnection.addTrack(track, appState.localStream);
@@ -337,7 +347,7 @@
                 console.log(`ICE состояние для ${targetUserId}:`, peerConnection.iceConnectionState);
                 if (peerConnection.iceConnectionState === 'failed') {
                     console.log(`Соединение с ${targetUserId} прервано`);
-                    removePeerConnection(targetUserId);
+                    setTimeout(() => createPeerConnection(targetUserId), 2000);
                 }
             };
             
@@ -395,9 +405,9 @@
 
             peerConnection.onicecandidate = async event => {
                 if (event.candidate) {
-                    await webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "answer", {
+                    await webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "candidate", {
                         targetId: senderUserId,
-                        answer: peerConnection.localDescription
+                        candidate: event.candidate
                     }).catch(err => {
                         console.error('Ошибка отправки ICE candidate:', err);
                     });
@@ -414,7 +424,7 @@
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
             
-            await webRtcConnection.invoke("SendSignalToGroup", roomId, appState.currentUserId, "answer", {
+            await webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "answer", {
                 targetId: senderUserId,
                 answer: peerConnection.localDescription
             });
@@ -441,15 +451,20 @@
         const video = document.createElement('video');
         video.id = `remoteVideo-${userId}`;
         video.autoplay = true;
-        video.playsinline = true;
+        video.playsInline = true;
         video.srcObject = stream;
         
         const userIdLabel = document.createElement('div');
         userIdLabel.className = 'remote-user-id';
         userIdLabel.textContent = `User ${userId.substring(0, 6)}`;
         
+        const micIndicator = document.createElement('div');
+        micIndicator.className = 'mic-state-indicator';
+        micIndicator.textContent = '🎤';
+        
         videoContainer.appendChild(video);
         videoContainer.appendChild(userIdLabel);
+        videoContainer.appendChild(micIndicator);
         elements.remoteVideosContainer.appendChild(videoContainer);
     }
 
@@ -489,7 +504,10 @@
             
             addSystemMessage('Вы покинули аудиоконференцию');
             
-            // Перенаправляем на главную страницу или закрываем окно
+            // Удаляем индикатор локального микрофона
+            const localIndicator = document.querySelector('.local-mic-indicator');
+            if (localIndicator) localIndicator.remove();
+            
             setTimeout(() => {
                 window.location.href = '/';
             }, 1000);
@@ -593,10 +611,7 @@
 
                 console.log(`Получен сигнал ${type} от ${senderUserId}`);
 
-                if (type === 'broadcastStarted' && appState.isBroadcasting) {
-                    await createPeerConnection(senderUserId);
-                }
-                else if (type === 'offer') {
+                if (type === 'offer') {
                     await handleOffer(senderUserId, data);
                 } 
                 else if (type === 'answer') {
@@ -609,6 +624,32 @@
                 }
             } catch (err) {
                 console.error('Ошибка обработки сигнала:', err);
+            }
+        });
+
+        webRtcConnection.on("ExistingUsers", (users) => {
+            appState.existingUsers = users;
+            connectToExistingUsers();
+        });
+
+        webRtcConnection.on("UserJoined", (userId) => {
+            if (userId !== appState.currentUserId && appState.isBroadcasting) {
+                createPeerConnection(userId);
+            }
+        });
+
+        webRtcConnection.on("UserLeft", (userId) => {
+            removePeerConnection(userId);
+            addSystemMessage(`Пользователь ${userId} покинул конференцию`);
+        });
+
+        webRtcConnection.on("ReceiveMicrophoneState", (userId, isMuted) => {
+            const videoContainer = document.getElementById(`remoteContainer-${userId}`);
+            if (videoContainer) {
+                const indicator = videoContainer.querySelector('.mic-state-indicator');
+                if (indicator) {
+                    indicator.textContent = isMuted ? '🔇' : '🎤';
+                }
             }
         });
 
@@ -693,7 +734,6 @@
             
             addSystemMessage(`Вы присоединились к комнате ${roomId}`);
             
-            // Автоматически запрашиваем доступ к устройствам и начинаем трансляцию
             const hasDevices = await requestDeviceAccess();
             if (hasDevices) {
                 await startLocalStream();
