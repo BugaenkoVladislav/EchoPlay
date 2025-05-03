@@ -7,9 +7,8 @@
     <div class="content-area">
         <!-- Видео элементы -->
         <div class="video-container">
-            <video id="localVideo" autoplay muted playsinline style="display:none;"></video>
             <div id="remoteVideosContainer" class="remote-videos-grid"></div>
-            <div id="audioOnlyIndicator" style="display:none;">
+            <div id="audioOnlyIndicator">
                 <div class="audio-call-icon">🎤</div>
                 <div>Аудио-звонок</div>
             </div>
@@ -22,22 +21,15 @@
         <!-- Управление устройствами -->
         <div class="device-controls" id="deviceControls" style="display:none;">
             <div class="device-select-group">
-                <label>
-                    <input type="checkbox" id="enableVideo"> Использовать камеру
-                </label>
-                <select id="cameraSelect" class="device-select" disabled></select>
-            </div>
-            <div class="device-select-group">
                 <label for="microphoneSelect">Микрофон:</label>
-                <select id="microphoneSelect" class="device-select" disabled></select>
+                <select id="microphoneSelect" class="device-select"></select>
+                <button id="toggleMicBtn" class="btn-mic">Выключить микрофон</button>
             </div>
         </div>
 
         <!-- Кнопки управления -->
         <div class="webrtc-controls">
-            <button id="requestAccessBtn" class="btn btn-primary">Разрешить доступ к устройствам</button>
-            <button id="startBroadcastBtn" class="btn btn-success" disabled>Начать трансляцию</button>
-            <button id="stopBroadcastBtn" class="btn btn-danger" disabled>Остановить трансляцию</button>
+            <button id="stopBroadcastBtn" class="btn btn-danger" disabled>Покинуть комнату</button>
         </div>
 
         <!-- Статус соединения -->
@@ -69,34 +61,29 @@
     // Конфигурация
     const roomId = "@ViewData["RoomId"]";
     const currentUser = "User_" + Math.random().toString(36).substring(2, 8);
-    const serverUrl = "https://localhost:7222"; // Автоматическое определение URL сервера
+    const serverUrl = "https://localhost:7222";
 
     // Состояние приложения
     const appState = {
         localStream: null,
         peerConnections: new Map(),
         hasAudioPermission: false,
-        hasVideoPermission: false,
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
         isBroadcasting: false,
         currentUserId: null,
         retryCount: 0,
         maxRetries: 5,
-        isInitialized: false
+        isInitialized: false,
+        isMicMuted: false
     };
 
     // Элементы DOM
     const elements = {
-        localVideo: document.getElementById('localVideo'),
         remoteVideosContainer: document.getElementById('remoteVideosContainer'),
         audioOnlyIndicator: document.getElementById('audioOnlyIndicator'),
         noDevicesMessage: document.getElementById('noDevicesMessage'),
-        enableVideo: document.getElementById('enableVideo'),
-        cameraSelect: document.getElementById('cameraSelect'),
         microphoneSelect: document.getElementById('microphoneSelect'),
         deviceControls: document.getElementById('deviceControls'),
-        requestAccessBtn: document.getElementById('requestAccessBtn'),
-        startBroadcastBtn: document.getElementById('startBroadcastBtn'),
         stopBroadcastBtn: document.getElementById('stopBroadcastBtn'),
         messagesList: document.getElementById('messagesList'),
         messageInput: document.getElementById('messageInput'),
@@ -106,7 +93,8 @@
         connectionStatus: document.querySelector('.connection-status'),
         statusText: document.querySelector('.status-text'),
         statusIndicator: document.querySelector('.status-indicator'),
-        roomIdDisplay: document.getElementById('roomIdDisplay')
+        roomIdDisplay: document.getElementById('roomIdDisplay'),
+        toggleMicBtn: document.getElementById('toggleMicBtn')
     };
 
     // SignalR соединения
@@ -115,9 +103,9 @@
         .withAutomaticReconnect({
             nextRetryDelayInMilliseconds: retryContext => {
                 if (retryContext.elapsedMilliseconds < 60000) {
-                    return Math.random() * 2000 + 2000; // 2-4 секунды
+                    return Math.random() * 2000 + 2000;
                 }
-                return null; // Остановить попытки после 60 секунд
+                return null;
             }
         })
         .configureLogging(signalR.LogLevel.Warning)
@@ -186,29 +174,20 @@
     // ==================== WebRTC функции ====================
     async function requestDeviceAccess() {
         try {
-            // Сначала запрашиваем только аудио
-            let stream;
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            } catch (audioError) {
-                console.log("Не удалось получить только аудио, пробуем с видео:", audioError);
-                stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-            }
-
+            // Запрашиваем только аудио
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const devices = await navigator.mediaDevices.enumerateDevices();
             
             appState.hasAudioPermission = devices.some(d => d.kind === 'audioinput' && d.label !== '');
-            appState.hasVideoPermission = devices.some(d => d.kind === 'videoinput' && d.label !== '');
-
+            
             // Освобождаем поток
             stream.getTracks().forEach(track => track.stop());
 
             await updateDeviceLists();
             elements.deviceControls.style.display = 'block';
-            elements.requestAccessBtn.textContent = 'Обновить устройства';
             hideError();
 
-            if (!appState.hasAudioPermission && !appState.hasVideoPermission) {
+            if (!appState.hasAudioPermission) {
                 elements.noDevicesMessage.style.display = 'block';
                 return false;
             }
@@ -216,7 +195,7 @@
             return true;
         } catch (err) {
             console.error('Ошибка доступа к устройствам:', err);
-            showError('Не удалось получить доступ к устройствам. Вы можете продолжать текстовый чат.');
+            showError('Не удалось получить доступ к микрофону. Вы можете продолжать текстовый чат.');
             elements.noDevicesMessage.style.display = 'block';
             return false;
         }
@@ -225,23 +204,16 @@
     async function updateDeviceLists() {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
-            const cameras = devices.filter(d => d.kind === 'videoinput');
             const microphones = devices.filter(d => d.kind === 'audioinput');
             
-            populateSelect(elements.cameraSelect, cameras, 'Камера не найдена');
             populateSelect(elements.microphoneSelect, microphones, 'Микрофон не найден');
-            
-            elements.enableVideo.disabled = cameras.length === 0;
-            elements.enableVideo.checked = cameras.length > 0 && appState.hasVideoPermission;
-            
-            elements.cameraSelect.disabled = cameras.length === 0;
             elements.microphoneSelect.disabled = microphones.length === 0;
 
-            return { cameras, microphones };
+            return { microphones };
         } catch (err) {
             console.error('Ошибка обновления устройств:', err);
-            showError('Ошибка получения списка устройств');
-            return { cameras: [], microphones: [] };
+            showError('Ошибка получения списка микрофонов');
+            return { microphones: [] };
         }
     }
 
@@ -264,7 +236,7 @@
         devices.forEach(device => {
             const option = document.createElement('option');
             option.value = device.deviceId;
-            option.text = device.label || `Устройство ${selectElement.id === 'cameraSelect' ? 'камера' : 'микрофон'}`;
+            option.text = device.label || `Микрофон ${device.deviceId.substring(0, 4)}`;
             selectElement.appendChild(option);
         });
         
@@ -279,59 +251,60 @@
 
             const constraints = {
                 audio: elements.microphoneSelect.value ? 
-                    { deviceId: { exact: elements.microphoneSelect.value } } : true,
-                video: elements.enableVideo.checked && elements.cameraSelect.value ? 
-                    { deviceId: { exact: elements.cameraSelect.value } } : false
+                    { deviceId: { exact: elements.microphoneSelect.value } } : true
             };
 
             appState.localStream = await navigator.mediaDevices.getUserMedia(constraints);
             
-            if (constraints.video) {
-                elements.localVideo.srcObject = appState.localStream;
-                elements.localVideo.style.display = 'block';
-                elements.audioOnlyIndicator.style.display = 'none';
-            } else {
-                elements.localVideo.style.display = 'none';
-                elements.audioOnlyIndicator.style.display = 'block';
-            }
+            // Обновляем состояние микрофона
+            toggleMicrophone(!appState.isMicMuted);
             
-            elements.startBroadcastBtn.disabled = false;
             return true;
         } catch (err) {
             console.error('Ошибка запуска потока:', err);
-            showError('Ошибка запуска медиапотока: ' + err.message);
-            elements.startBroadcastBtn.disabled = true;
+            showError('Ошибка запуска аудиопотока: ' + err.message);
             return false;
         }
+    }
+
+    function toggleMicrophone(enable) {
+        if (!appState.localStream) return;
+        
+        appState.isMicMuted = !enable;
+        appState.localStream.getAudioTracks().forEach(track => {
+            track.enabled = enable;
+        });
+        
+        elements.toggleMicBtn.textContent = enable ? 'Выключить микрофон' : 'Включить микрофон';
     }
 
     async function startBroadcast() {
         if (!appState.localStream) {
             const success = await startLocalStream();
             if (!success) {
-                showError('Не удалось получить доступ к устройствам');
+                showError('Не удалось получить доступ к микрофону');
                 return;
             }
         }
 
         try {
             appState.isBroadcasting = true;
-            updateUIForBroadcastState(true);
+            elements.stopBroadcastBtn.disabled = false;
             
             await webRtcConnection.invoke("JoinGroup", roomId);
             await webRtcConnection.invoke("SendSignal", roomId, appState.currentUserId, "broadcastStarted", null);
             
-            addSystemMessage('Трансляция начата');
+            addSystemMessage('Вы подключились к аудиоконференции');
         } catch (err) {
             console.error('Ошибка начала трансляции:', err);
-            showError('Ошибка начала трансляции: ' + err.message);
+            showError('Ошибка подключения: ' + err.message);
             stopBroadcast();
         }
     }
 
     async function createPeerConnection(targetUserId) {
         try {
-            if (appState.peerConnections.has(targetUserId) || targetUserId === appState.currentUserId) {
+            if (appState.peerConnections.has(targetUserId) ){
                 return;
             }
 
@@ -342,10 +315,12 @@
                 sdpSemantics: 'unified-plan'
             });
             
-            // Добавляем треки из локального потока
-            appState.localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, appState.localStream);
-            });
+            // Добавляем аудио трек
+            if (appState.localStream) {
+                appState.localStream.getAudioTracks().forEach(track => {
+                    peerConnection.addTrack(track, appState.localStream);
+                });
+            }
 
             peerConnection.onicecandidate = event => {
                 if (event.candidate) {
@@ -368,13 +343,12 @@
             
             peerConnection.ontrack = event => {
                 if (!event.streams || event.streams.length === 0) return;
-                console.log(`Получен трек от ${targetUserId}`);
+                console.log(`Получен аудиопоток от ${targetUserId}`);
                 addRemoteVideo(targetUserId, event.streams[0]);
             };
 
             const offer = await peerConnection.createOffer({
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: elements.enableVideo.checked
+                offerToReceiveAudio: true
             });
             await peerConnection.setLocalDescription(offer);
             
@@ -413,9 +387,11 @@
                 sdpSemantics: 'unified-plan'
             });
             
-            appState.localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, appState.localStream);
-            });
+            if (appState.localStream) {
+                appState.localStream.getAudioTracks().forEach(track => {
+                    peerConnection.addTrack(track, appState.localStream);
+                });
+            }
 
             peerConnection.onicecandidate = async event => {
                 if (event.candidate) {
@@ -430,7 +406,7 @@
             
             peerConnection.ontrack = event => {
                 if (!event.streams || event.streams.length === 0) return;
-                console.log(`Получен трек от ${senderUserId}`);
+                console.log(`Получен аудиопоток от ${senderUserId}`);
                 addRemoteVideo(senderUserId, event.streams[0]);
             };
 
@@ -493,7 +469,7 @@
     function stopBroadcast() {
         try {
             appState.isBroadcasting = false;
-            updateUIForBroadcastState(false);
+            elements.stopBroadcastBtn.disabled = true;
             
             appState.peerConnections.forEach((pc, userId) => {
                 pc.close();
@@ -507,18 +483,19 @@
                 appState.localStream = null;
             }
             
-            elements.localVideo.srcObject = null;
-            elements.localVideo.style.display = 'none';
-            elements.audioOnlyIndicator.style.display = 'none';
-            
             webRtcConnection.invoke("LeaveGroup", roomId).catch(err => {
                 console.error('Ошибка при выходе из группы:', err);
             });
             
-            addSystemMessage('Трансляция остановлена');
+            addSystemMessage('Вы покинули аудиоконференцию');
+            
+            // Перенаправляем на главную страницу или закрываем окно
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
         } catch (err) {
             console.error('Ошибка остановки трансляции:', err);
-            showError('Ошибка при остановке трансляции: ' + err.message);
+            showError('Ошибка при выходе из комнаты: ' + err.message);
         }
     }
 
@@ -533,7 +510,6 @@
         elements.errorContainer.textContent = message;
         elements.errorContainer.style.display = 'block';
         
-        // Автоматическое скрытие ошибки через 5 секунд
         setTimeout(() => {
             elements.errorContainer.style.display = 'none';
         }, 5000);
@@ -552,43 +528,18 @@
         elements.statusText.textContent = isConnected ? 'Подключено' : 'Отключено';
     }
 
-    function updateUIForBroadcastState(isBroadcasting) {
-        elements.startBroadcastBtn.disabled = isBroadcasting;
-        elements.stopBroadcastBtn.disabled = !isBroadcasting;
-    }
-
     // ==================== Обработчики событий ====================
     function setupEventListeners() {
-        elements.requestAccessBtn.addEventListener('click', async () => {
-            const success = await requestDeviceAccess();
-            if (success) await startLocalStream();
-        });
-
-        elements.enableVideo.addEventListener('change', async () => {
-            if (appState.localStream) {
-                if (elements.enableVideo.checked) {
-                    await startLocalStream();
-                } else {
-                    appState.localStream.getVideoTracks().forEach(track => track.stop());
-                    elements.localVideo.style.display = 'none';
-                    elements.audioOnlyIndicator.style.display = 'block';
-                }
-            }
-        });
-
-        elements.cameraSelect.addEventListener('change', async () => {
-            if (appState.localStream) {
-                await startLocalStream();
-            }
-        });
-
         elements.microphoneSelect.addEventListener('change', async () => {
             if (appState.localStream) {
                 await startLocalStream();
             }
         });
 
-        elements.startBroadcastBtn.addEventListener('click', startBroadcast);
+        elements.toggleMicBtn.addEventListener('click', () => {
+            toggleMicrophone(appState.isMicMuted);
+        });
+
         elements.stopBroadcastBtn.addEventListener('click', stopBroadcast);
 
         elements.sendButton.addEventListener("click", sendMessage);
@@ -602,7 +553,6 @@
                     await webRtcConnection.invoke("LeaveGroup", roomId);
                 }
                 await chatRoomConnection.invoke("LeaveRoom", roomId);
-                stopBroadcast();
             } catch (err) {
                 console.error('Ошибка при закрытии:', err);
             }
@@ -674,7 +624,6 @@
                 addSystemMessage(`Соединение с ${connectionName} восстановлено`);
                 
                 if (connection === webRtcConnection && appState.isBroadcasting) {
-                    // Повторно присоединяемся к группе после переподключения
                     webRtcConnection.invoke("JoinGroup", roomId).catch(err => {
                         console.error("Ошибка повторного присоединения к группе:", err);
                     });
@@ -743,7 +692,13 @@
             updateConnectionStatus(true);
             
             addSystemMessage(`Вы присоединились к комнате ${roomId}`);
-            await requestDeviceAccess();
+            
+            // Автоматически запрашиваем доступ к устройствам и начинаем трансляцию
+            const hasDevices = await requestDeviceAccess();
+            if (hasDevices) {
+                await startLocalStream();
+                await startBroadcast();
+            }
         } catch (err) {
             console.error('Ошибка инициализации:', err);
             addSystemMessage("Ошибка подключения. Повтор через 5 секунд...");
