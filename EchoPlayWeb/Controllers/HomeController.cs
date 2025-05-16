@@ -4,6 +4,7 @@ using EchoPlayWeb.Models;
 using Microsoft.AspNetCore.Authorization;
 
 namespace EchoPlayWeb.Controllers;
+[Authorize(AuthenticationSchemes = "CookieScheme")]
 public class HomeController(ILogger<HomeController> logger) : Controller
 {
     private readonly ILogger<HomeController> _logger = logger;

@@ -8,4 +8,5 @@ public class AuthDto
     public LoginPasswordDto? UserData { get; set; } = null;
     public AuthType? AuthType { get; set; } = null;
     public long? Code { get; set; } = null;
+    public bool IsSignUp { get; set; } = false;
 }

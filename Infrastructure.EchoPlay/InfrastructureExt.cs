@@ -9,5 +9,6 @@ public static class InfrastructureExt
     {
         services.AddScoped<UserRepository>();
         services.AddScoped<MessageRepository>();
+        services.AddScoped<CodeRepository>();
     }
 }

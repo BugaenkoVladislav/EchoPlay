@@ -9,12 +9,14 @@
     // Получаем сохраненную модель из TempData
     var loginModelJson = TempData["LoginModel"] as string;
     TempData.Keep("LoginModel"); // Сохраняем для следующего запроса
+    var isSignUp = TempData["IsSignUp"] as bool?;
+    TempData.Keep("IsSignUp");
 }
 
 <form asp-controller="Account" asp-action="LoginCookie" method="post">
     <input type="hidden" name="Email" value="@(loginModelJson != null ? JsonConvert.DeserializeObject<LoginPasswordViewModel>(loginModelJson)?.Email : "")" />
     <input type="hidden" name="Password" value="@(loginModelJson != null ? JsonConvert.DeserializeObject<LoginPasswordViewModel>(loginModelJson)?.Password : "")" />
-    
+    <input type="hidden" name="isSignUp" value="@(isSignUp ?? false)">
     <h4>Code</h4>
     <input type="number" name="code"/>
     <input type="submit" value="Enter"/>

@@ -1,15 +1,20 @@
 using System.Text.Json;
 using App.EchoPlay.Dtos;
+using App.EchoPlay.Fabrics;
+using App.EchoPlay.Mappers;
 using App.EchoPlay.Services;
 using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Enums;
+using Domain.EchoPlay.Interfaces;
 using EchoPlayWeb.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EchoPlayWeb.Controllers.Account;
 
-public class AccountController(IHttpClientFactory httpClientFactory) : Controller
+public class AccountController(IHttpClientFactory httpClientFactory,AuthenticationCreator authenticationCreator) : Controller
 {
+    private readonly AuthenticationCreator _authenticationCreator = authenticationCreator;
+    private IAuthentication<User> _authentication;
     private readonly HttpClient _authHttpClient = httpClientFactory.CreateClient("AuthApi");
 
     [HttpGet]
@@ -26,17 +31,11 @@ public class AccountController(IHttpClientFactory httpClientFactory) : Controlle
     {
         try
         {
-            var authDto = new AuthDto
+            var authDto = new LoginPasswordDto
             {
-                UserData = new LoginPasswordDto
-                {
-                    Email = model.Email,
-                    Password = model.Password
-                }
+                Email = model.Email,
+                Password = model.Password
             };
-            var requestUri = new Uri(_authHttpClient.BaseAddress, "api/Authentication/identify");
-            
-            Console.WriteLine($"Request URI: {requestUri}");
             var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/identify", authDto);
             if (!response.IsSuccessStatusCode)
             {
@@ -44,6 +43,7 @@ public class AccountController(IHttpClientFactory httpClientFactory) : Controlle
             }
 
             TempData["LoginModel"] = JsonSerializer.Serialize(model);
+            TempData["IsSignUp"] = false;
             return RedirectToAction("TwoFactorAuth", "Account");
         }
         catch (Exception ex)
@@ -53,10 +53,38 @@ public class AccountController(IHttpClientFactory httpClientFactory) : Controlle
         }
     }
 
+    [HttpPost]
+    public async Task<IActionResult> SignUp(SignUpViewModel model)
+    {
+        try
+        {
+            var signUpDto = new SignUpDto()
+            {
+                Email = model.Email,
+                Password = model.Password,
+                Username = model.Username
+            };
+            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/signup", signUpDto);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await response.Content.ReadAsStringAsync());
+            }
+            TempData["LoginModel"] = JsonSerializer.Serialize(model);
+            TempData["IsSignUp"] = true;
+            return RedirectToAction("TwoFactorAuth", "Account");
+            
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View("SignUp", model);
+        }
+    }
+
     #region CookieAuth
 
     [HttpPost]
-    public async Task<IActionResult> LoginCookie(LoginPasswordViewModel model, long code = 0)
+    public async Task<IActionResult> LoginCookie(LoginPasswordViewModel model, bool isSignUp,long code = 0)
     {
         try
         {
@@ -68,14 +96,21 @@ public class AccountController(IHttpClientFactory httpClientFactory) : Controlle
                     Password = model.Password
                 }, 
                 AuthType = AuthType.Cookie,
-                Code = code
+                Code = code,
+                IsSignUp = isSignUp
             };
             var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/authenticate", authDto);
             if (!response.IsSuccessStatusCode)
             {
                 throw new Exception(await response.Content.ReadAsStringAsync());
             }
-
+            var stringResponse = await response.Content.ReadAsStringAsync();
+            var user = JsonSerializer.Deserialize<User>(stringResponse,new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            _authentication = _authenticationCreator.Create(AuthType.Cookie);
+            await _authentication.AuthenticateAsync(user);
             return RedirectToAction("Index", "Home");
         }
         catch (Exception ex)

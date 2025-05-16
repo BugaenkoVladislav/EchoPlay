@@ -1,5 +1,6 @@
 using App.EchoPlay.Fabrics;
 using App.EchoPlay.Services;
+using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Interfaces;
 using Infrastructure.EchoPlay;
 using Infrastructure.EchoPlay.Authentications;
@@ -26,9 +27,9 @@ namespace EchoPlayApi
             builder.Services.AddScoped<AuthService>();
 
             // Регистрируем зависимость для IAuthentication<User>
-            builder.Services.AddScoped<IAuthentication<Domain.EchoPlay.Entities.User>, BaseAuthentication>();
-            builder.Services.AddScoped<BaseAuthentication, JwtAuthentication>();     
-            builder.Services.AddScoped<BaseAuthentication, CookieAuthentication>();
+            builder.Services.AddScoped<BaseAuthentication>();
+            builder.Services.AddScoped<IAuthentication<User>, JwtAuthentication>();     
+            builder.Services.AddScoped<IAuthentication<User>, CookieAuthentication>();
 
             // Регистрация других зависимостей
             builder.Services.AddScoped<IEncryption, AESEncryption>();
@@ -53,7 +54,6 @@ namespace EchoPlayApi
             {
                 // Настройки авторизации
             });
-            builder.Services.AddAuthorization();
 
             builder.Services.AddCors(options =>
             {

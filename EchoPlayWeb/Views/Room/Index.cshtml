@@ -1,5 +1,7 @@
+@using System.Security.Claims
 @{
     ViewData["Title"] = "Групповая видеоконференция";
+    var username = this.Context.User.FindFirst(ClaimTypes.Name)?.Value;
 }
 <div class="app-container">
     <!-- Основная область контента -->

@@ -5,16 +5,20 @@ using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authentications;
 
-public class JwtAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption, accessor), IAuthentication<User>
+public class JwtAuthentication(IHttpContextAccessor accessor) : BaseAuthentication(accessor), IAuthentication<User>
 {
-    public override async Task<string> AuthenticateAsync(User userData,long code)
+    public Task AuthenticateAsync(User userData)
     {
-        await base.AuthenticateAsync(userData,code);
         var claims = new List<Claim>()
         {
             new Claim(ClaimTypes.Name, userData.Username),
             new Claim(ClaimTypes.Email, userData.Email),
         };
-        return "";
+        return Task.FromResult("");
+    }
+
+    public Task UnauthenticateAsync(User userData)
+    {
+        throw new NotImplementedException();
     }
 }

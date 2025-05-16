@@ -1,4 +1,5 @@
 using App.EchoPlay.Dtos;
+using App.EchoPlay.Mappers;
 using App.EchoPlay.Services;
 using Domain.EchoPlay.Entities;
 using Microsoft.AspNetCore.Authentication;
@@ -19,14 +20,19 @@ namespace EchoPlayApi.Controllers
         {
             try
             {
-                var user = new User()
+
+                var user  = await _authService.GetUserAsync(dto.UserData.Email, dto.UserData.Password);
+                if (await _authService.CheckCorrectCode(user, dto.Code.Value))
                 {
-                    Email = dto.UserData.Email,
-                    Password = dto.UserData.Password,
-                };
+                    if (dto.IsSignUp)
+                    {
+                        await _authService.SignUpAsync(user, dto.Code.Value);
+                    }
+                    
+                    return Ok(user);
+                }
+                throw new UnauthorizedAccessException();
                 
-                await _authService.AuthenticateAsync(user, dto.AuthType!.Value, dto.Code!.Value);
-                return Ok();
             }
             catch (Exception ex)
             {
@@ -35,15 +41,11 @@ namespace EchoPlayApi.Controllers
         }
 
         [HttpPost("identify")]
-        public async Task<IActionResult> Identify([FromBody] AuthDto dto)
+        public async Task<IActionResult> Identify([FromBody] LoginPasswordDto dto)
         {
             try
             {
-                await _authService.IdentifyUserAsync(new User()
-                {
-                    Email = dto.UserData.Email,
-                    Password = dto.UserData.Password,
-                });
+                await _authService.IdentifyUserAsync(dto);
                 return Ok();
             }
             catch (Exception ex)
@@ -52,16 +54,19 @@ namespace EchoPlayApi.Controllers
             }
         }
 
+        [HttpPost("signup")]
+        public async Task<IActionResult> SignUp([FromBody] SignUpDto dto)
+        {
+            await _authService.SendCodeOnEmail(UserMappers.MapFromSignUpDto(dto));
+            return Ok();
+        }
+
         [HttpPost("unauthenticate")]
         public async Task<IActionResult> Unauthenticate([FromBody] AuthDto dto)
         {
             try
             {
-                await _authService.UnauthenticateAsync(new User()
-                {
-                    Email = dto.UserData.Email,
-                    Password = dto.UserData.Password,
-                });
+                var user  = await _authService.GetUserAsync(dto.UserData.Email, dto.UserData.Password);
                 return Ok();
             }
             catch (Exception ex)

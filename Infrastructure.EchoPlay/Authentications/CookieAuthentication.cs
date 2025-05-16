@@ -6,17 +6,17 @@ using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.EchoPlay.Authentications;
 
-public class CookieAuthentication(UnitOfWork uow, IEncryption encryption, IHttpContextAccessor accessor) : BaseAuthentication(uow, encryption, accessor), IAuthentication<User>
+public class CookieAuthentication(IHttpContextAccessor accessor) : BaseAuthentication(accessor), IAuthentication<User>
 {
-    public override async Task AuthenticateAsync(User userData,long code)
+    public async Task AuthenticateAsync(User userData)
     {
-        await base.AuthenticateAsync(userData,code);
-        var claims = new List<Claim> { new (ClaimTypes.Email, userData.Email) };
+        var claims = new List<Claim> { new (ClaimTypes.Email, userData.Email), 
+            new Claim(ClaimTypes.Name, userData.Username)};
         var claimsIdentity = new ClaimsIdentity(claims, "CookieAuth");
         await _accessor.HttpContext.SignInAsync("CookieScheme", new ClaimsPrincipal(claimsIdentity));
     }
 
-    public override async Task UnauthenticateAsync(User userData)
+    public  async Task UnauthenticateAsync(User userData)
     {
         await _accessor.HttpContext.SignOutAsync("CookieScheme");
     }
