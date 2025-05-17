@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace Domain.EchoPlay.Entities;
-public record Code
+public class Code
 {
     [Key]
     [Required]
@@ -15,5 +15,5 @@ public record Code
     public string Number { get; set; }
     
     [ForeignKey("UserId")]
-    public User User { get; set; }
+    public TmpUser User { get; set; }
 }

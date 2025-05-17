@@ -3,5 +3,5 @@
 public enum AuthType
 {
     Cookie = 0,
-    JwtBearer = 1
+    JwtBearer = 1,
 }

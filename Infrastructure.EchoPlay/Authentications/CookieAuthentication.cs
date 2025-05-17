@@ -10,8 +10,9 @@ public class CookieAuthentication(IHttpContextAccessor accessor) : BaseAuthentic
 {
     public async Task AuthenticateAsync(User userData)
     {
-        var claims = new List<Claim> { new (ClaimTypes.Email, userData.Email), 
-            new Claim(ClaimTypes.Name, userData.Username)};
+        var claims = new List<Claim> { 
+            new (ClaimTypes.Email, userData.Email), 
+            new (ClaimTypes.Name, userData.Username)};
         var claimsIdentity = new ClaimsIdentity(claims, "CookieAuth");
         await _accessor.HttpContext.SignInAsync("CookieScheme", new ClaimsPrincipal(claimsIdentity));
     }

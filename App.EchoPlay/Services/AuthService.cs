@@ -58,12 +58,11 @@ public class AuthService(UnitOfWork uow,IEncryption encryption,SMTPSettings smtp
             x.Username == login && x.Password == password);
     } 
 
-    public async Task SignUpAsync(User user,long code)
+    public async Task SignUpAsync(User user)
     { 
         await _uow.UserRepository.AddNewEntityAsync(user);
+        await _uow.TmpUserRepository.DeleteEntityAsync(user);
         await _uow.SaveChangesAsync();
-        
-        throw new UnauthorizedAccessException();
     }
 
     public async Task<bool> CheckCorrectCode(User userData, long code)

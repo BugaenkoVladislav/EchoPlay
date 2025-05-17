@@ -1,6 +1,6 @@
 ﻿namespace Domain.EchoPlay.Entities;
 
-public record Message
+public class Message
 {
     
 }

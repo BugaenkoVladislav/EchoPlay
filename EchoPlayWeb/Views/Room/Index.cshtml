@@ -1,7 +1,8 @@
 @using System.Security.Claims
+@using Newtonsoft.Json
 @{
     ViewData["Title"] = "Групповая видеоконференция";
-    var Username = User.FindFirst(ClaimTypes.Name)?.Value;
+    var username = User.FindFirst(ClaimTypes.Name)?.Value;
  
 }
 <div class="app-container">
@@ -60,12 +61,10 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 <script>
-    // Конфигурация
     const roomId = "@ViewData["RoomId"]";
-    const currentUser = "@Username";
+    const currentUser = @Html.Raw(JsonConvert.SerializeObject(username));
     const serverUrl = "https://localhost:7222";
-
-    // Состояние приложения
+    
     const appState = {
         localStream: null,
         peerConnections: new Map(),
@@ -79,8 +78,7 @@
         isMicMuted: false,
         existingUsers: []
     };
-
-    // Элементы DOM
+    
     const elements = {
         remoteVideosContainer: document.getElementById('remoteVideosContainer'),
         audioOnlyIndicator: document.getElementById('audioOnlyIndicator'),

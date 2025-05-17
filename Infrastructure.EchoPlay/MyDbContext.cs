@@ -7,4 +7,5 @@ public class MyDbContext(DbContextOptions<MyDbContext> options):DbContext(option
 {
     public DbSet<User> Users { get; set; }
     public DbSet<Code> Codes { get; set; }
+    public DbSet<TmpUser> TmpUsers { get; set; }
 }

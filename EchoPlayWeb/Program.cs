@@ -1,6 +1,8 @@
+using App.EchoPlay.AddiSettings;
 using App.EchoPlay.Fabrics;
 using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Interfaces;
+using Google.Apis.Auth.AspNetCore3;
 using Infrastructure.EchoPlay.Authentications;
 
 namespace EchoPlayWeb;
@@ -10,14 +12,11 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        builder.Services.AddHttpContextAccessor(); // ✅ обязательно
+        var googleSettings = builder.Configuration.GetSection("GoogleSettings").Get<GoogleOpenIdSettings>();
+        
+        builder.Services.AddHttpContextAccessor(); 
         builder.Services.AddScoped<AuthenticationCreator>();
-        builder.Services.AddScoped<BaseAuthentication>();
-        builder.Services.AddScoped<IAuthentication<User>, JwtAuthentication>();     
-        builder.Services.AddScoped<IAuthentication<User>, CookieAuthentication>();
-
-        builder.Services.AddScoped<AuthenticationCreator>();
-        // Регистрируем зависимость для IAuthentication<User>
+        
         builder.Services.AddScoped<BaseAuthentication>();
         builder.Services.AddScoped<IAuthentication<User>, JwtAuthentication>();     
         builder.Services.AddScoped<IAuthentication<User>, CookieAuthentication>();
@@ -32,11 +31,17 @@ public class Program
             {
                 options.DefaultScheme = "CookieScheme";
                 options.DefaultSignInScheme = "CookieScheme";
+                options.DefaultChallengeScheme =GoogleOpenIdConnectDefaults.AuthenticationScheme;
             })
             .AddCookie("CookieScheme", options =>
             {
                 options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
                 options.SlidingExpiration = true;
+            }).AddGoogleOpenIdConnect(options =>
+            {
+                options.ClientId = googleSettings.ClientId;
+                options.ClientSecret = googleSettings.ClientSecret;
+                options.CallbackPath = "/signin-google";
             })
             .AddJwtBearer(options =>
             {

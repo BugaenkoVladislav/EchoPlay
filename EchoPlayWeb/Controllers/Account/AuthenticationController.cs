@@ -1,12 +1,13 @@
+using System.Security.Claims;
 using System.Text.Json;
 using App.EchoPlay.Dtos;
 using App.EchoPlay.Fabrics;
-using App.EchoPlay.Mappers;
-using App.EchoPlay.Services;
 using Domain.EchoPlay.Entities;
 using Domain.EchoPlay.Enums;
 using Domain.EchoPlay.Interfaces;
 using EchoPlayWeb.Models;
+using Google.Apis.Auth.AspNetCore3;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EchoPlayWeb.Controllers.Account;
@@ -99,6 +100,7 @@ public class AccountController(IHttpClientFactory httpClientFactory,Authenticati
                 Code = code,
                 IsSignUp = isSignUp
             };
+            
             var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/authenticate", authDto);
             if (!response.IsSuccessStatusCode)
             {
@@ -145,5 +147,54 @@ public class AccountController(IHttpClientFactory httpClientFactory,Authenticati
         }
     }
 
+    #endregion
+    
+    #region GoogleAuth
+
+    [HttpPost]
+    public async Task<IActionResult> LoginGoogle()
+    {
+        try
+        {
+            var authProperties = new AuthenticationProperties
+            {
+                RedirectUri = "/Account/GoogleCallback" 
+            };
+
+            return Challenge(authProperties, GoogleOpenIdConnectDefaults.AuthenticationScheme);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    } 
+    
+    [HttpGet]
+    public async Task<IActionResult> GoogleCallback()
+    {
+        
+        var result = await HttpContext.AuthenticateAsync(GoogleOpenIdConnectDefaults.AuthenticationScheme);
+    
+        if (!result.Succeeded)
+            return BadRequest("Google login failed.");
+
+        var claims = result.Principal.Claims;
+        IDictionary<string,string> claimsDict = new Dictionary<string,string>();
+        var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+        var username = claims.FirstOrDefault(c => c.Type == "name")?.Value;
+        
+        var user = new User()
+        {
+            Email = email,
+            Username = username
+        };
+        
+        _authentication = _authenticationCreator.Create(AuthType.Cookie);
+        await _authentication.AuthenticateAsync(user);
+        
+        return RedirectToAction("Index", "Home");
+    }
+
+    
     #endregion
 }

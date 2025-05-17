@@ -20,13 +20,12 @@ namespace EchoPlayApi.Controllers
         {
             try
             {
-
                 var user  = await _authService.GetUserAsync(dto.UserData.Email, dto.UserData.Password);
                 if (await _authService.CheckCorrectCode(user, dto.Code.Value))
                 {
                     if (dto.IsSignUp)
                     {
-                        await _authService.SignUpAsync(user, dto.Code.Value);
+                        await _authService.SignUpAsync(user);
                     }
                     
                     return Ok(user);
