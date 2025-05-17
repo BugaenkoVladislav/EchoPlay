@@ -1,3 +1,4 @@
+using App.EchoPlay.AddiSettings;
 using App.EchoPlay.Fabrics;
 using App.EchoPlay.Services;
 using Domain.EchoPlay.Entities;
@@ -15,12 +16,13 @@ namespace EchoPlayApi
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
-            // Регистрация сервисов
+            var smtpSettings = builder.Configuration.GetSection("SMTP").Get<SMTPSettings>();
+            
             builder.Services.AddControllers();
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddDbContext<MyDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("SecondaryDatabase")));
+            builder.Services.AddDbContext<MyDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("SecondaryDatabase")));
+            builder.Services.AddSingleton(smtpSettings);
+            
             builder.Services.AddScoped<AuthenticationCreator>();
             builder.Services.AddRepos();
             builder.Services.AddScoped<UnitOfWork>();

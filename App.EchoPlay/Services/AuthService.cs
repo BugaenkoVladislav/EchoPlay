@@ -1,6 +1,7 @@
 ﻿using MailKit.Net.Smtp;
 using MimeKit;
 using System.Net.Mail;
+using App.EchoPlay.AddiSettings;
 using App.EchoPlay.Dtos;
 using App.EchoPlay.Fabrics;
 using Domain.EchoPlay.Entities;
@@ -12,13 +13,13 @@ using SmtpClient = MailKit.Net.Smtp.SmtpClient;
 
 namespace App.EchoPlay.Services;
 
-public class AuthService(UnitOfWork uow,IEncryption encryption)
+public class AuthService(UnitOfWork uow,IEncryption encryption,SMTPSettings smtpSettings)
 {
     protected IEncryption _encryption = encryption;
     private UnitOfWork _uow = uow;
-    private readonly string _fromEmail = "C0ffeeCup404@ya.ru";
-    private readonly string _password = "pldsgxrkxlhhyojx";
-    private readonly string _smtpServer = "smtp.yandex.ru";
+    private readonly string _fromEmail = smtpSettings.Email;
+    private readonly string _password = smtpSettings.Password;
+    private readonly string _smtpServer = smtpSettings.Server;
     
 
     public async Task IdentifyUserAsync(LoginPasswordDto user)
@@ -90,14 +91,14 @@ public class AuthService(UnitOfWork uow,IEncryption encryption)
 
         message.Body = new TextPart("plain")
         {
-            Text = code.ToString() + "для пользователя" + user.Username
+            Text = code.ToString() + " для пользователя " + user.Username
         };
 
         using var smtp = new SmtpClient();
         try
         {
-            await smtp.ConnectAsync("smtp.yandex.ru", 465, true); // SSL
-            await smtp.AuthenticateAsync(_fromEmail, _password); // Пароль приложения
+            await smtp.ConnectAsync(_smtpServer, 465, true); 
+            await smtp.AuthenticateAsync(_fromEmail, _password); 
             await smtp.SendAsync(message);
             await smtp.DisconnectAsync(true);
         }
