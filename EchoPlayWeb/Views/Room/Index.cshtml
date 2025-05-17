@@ -1,7 +1,8 @@
 @using System.Security.Claims
 @{
     ViewData["Title"] = "Групповая видеоконференция";
-    var username = this.Context.User.FindFirst(ClaimTypes.Name)?.Value;
+    var Username = User.FindFirst(ClaimTypes.Name)?.Value;
+ 
 }
 <div class="app-container">
     <!-- Основная область контента -->
@@ -61,7 +62,7 @@
 <script>
     // Конфигурация
     const roomId = "@ViewData["RoomId"]";
-    const currentUser = "User_" + Math.random().toString(36).substring(2, 8);
+    const currentUser = "@Username";
     const serverUrl = "https://localhost:7222";
 
     // Состояние приложения
@@ -458,7 +459,7 @@
         
         const userIdLabel = document.createElement('div');
         userIdLabel.className = 'remote-user-id';
-        userIdLabel.textContent = `User ${userId.substring(0, 6)}`;
+        userIdLabel.textContent = currentUser;
         
         const micIndicator = document.createElement('div');
         micIndicator.className = 'mic-state-indicator';
@@ -572,7 +573,7 @@
                 if (appState.isBroadcasting) {
                     await webRtcConnection.invoke("LeaveGroup", roomId);
                 }
-                await chatRoomConnection.invoke("LeaveRoom", roomId);
+                await chatRoomConnection.invoke("LeaveRoom", currentUser, roomId);
             } catch (err) {
                 console.error('Ошибка при закрытии:', err);
             }
@@ -719,11 +720,9 @@
                 }
             }
         };
-
-        // Установка обработчиков
+        
         setupEventListeners();
-
-        // Запуск соединений
+        
         try {
             await Promise.all([
                 chatRoomConnection.start(),
@@ -731,7 +730,7 @@
             ]);
             
             appState.currentUserId = webRtcConnection.connectionId;
-            await chatRoomConnection.invoke("JoinRoom", roomId);
+            await chatRoomConnection.invoke("JoinRoom",currentUser, roomId);
             updateConnectionStatus(true);
             
             addSystemMessage(`Вы присоединились к комнате ${roomId}`);

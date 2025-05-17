@@ -20,15 +20,15 @@ public class ChatHub : Hub, IChat
     {
         await Clients.Group(roomName).SendAsync("DeleteMessage", messageId, user);
     }
-    public async Task JoinRoom(string roomName)
+    public async Task JoinRoom(string username,string roomName)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
-        await Clients.Group(roomName).SendAsync("Notify", $"{Context.ConnectionId} вошёл в комнату {roomName}.");
+        await Clients.Group(roomName).SendAsync("Notify", $"{username} вошёл в комнату {roomName}.");
     }
     
-    public async Task LeaveRoom(string roomName)
+    public async Task LeaveRoom(string username,string roomName)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName);
-        await Clients.Group(roomName).SendAsync("Notify", $"{Context.ConnectionId} вышел из комнаты {roomName}.");
+        await Clients.Group(roomName).SendAsync("Notify", $"{username} вышел из комнаты {roomName}.");
     }
 }
