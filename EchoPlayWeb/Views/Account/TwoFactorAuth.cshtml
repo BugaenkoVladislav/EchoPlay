@@ -3,21 +3,34 @@
 @model dynamic
 
 @{
-    ViewBag.Title = "TwoFactorAuth";
+    ViewBag.Title = "Two-Factor Authentication";
     Layout = "_Layout";
-    
-    // Получаем сохраненную модель из TempData
+
     var loginModelJson = TempData["LoginModel"] as string;
-    TempData.Keep("LoginModel"); // Сохраняем для следующего запроса
+    TempData.Keep("LoginModel");
+
     var isSignUp = TempData["IsSignUp"] as bool?;
     TempData.Keep("IsSignUp");
+
+    var email = loginModelJson != null ? JsonConvert.DeserializeObject<LoginPasswordViewModel>(loginModelJson)?.Email : "";
+    var password = loginModelJson != null ? JsonConvert.DeserializeObject<LoginPasswordViewModel>(loginModelJson)?.Password : "";
 }
 
-<form asp-controller="Account" asp-action="LoginCookie" method="post">
-    <input type="hidden" name="Email" value="@(loginModelJson != null ? JsonConvert.DeserializeObject<LoginPasswordViewModel>(loginModelJson)?.Email : "")" />
-    <input type="hidden" name="Password" value="@(loginModelJson != null ? JsonConvert.DeserializeObject<LoginPasswordViewModel>(loginModelJson)?.Password : "")" />
-    <input type="hidden" name="isSignUp" value="@(isSignUp ?? false)">
-    <h4>Code</h4>
-    <input type="number" name="code"/>
-    <input type="submit" value="Enter"/>
-</form> 
+<link rel="stylesheet" href="~/css/signin.css" />
+
+<div class="signin-container">
+    <div class="signin-card">
+        <h2 class="signin-title">Two-Factor Authentication</h2>
+
+        <form asp-controller="Account" asp-action="LoginCookie" method="post" class="signin-form">
+            <input type="hidden" name="Email" value="@email" />
+            <input type="hidden" name="Password" value="@password" />
+            <input type="hidden" name="isSignUp" value="@(isSignUp ?? false)" />
+
+            <label for="code">Verification Code</label>
+            <input type="number" name="code" id="code" required />
+
+            <input type="submit" value="Verify" class="btn primary-btn" />
+        </form>
+    </div>
+</div>

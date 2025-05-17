@@ -70,7 +70,8 @@ public class AuthService(UnitOfWork uow,IEncryption encryption,SMTPSettings smtp
     {
         try
         {
-            await _uow.CodeRepository.GetEntityFirstAsync(x=>Convert.ToInt32(x.Number) == code && x.UserId == userData.Id);
+            var note = await _uow.CodeRepository.GetEntityFirstAsync(x=>Convert.ToInt32(x.Number) == code && x.UserId == userData.Id);
+            await _uow.CodeRepository.DeleteEntityAsync(note);
             return true;
         }
         catch (Exception ex)
