@@ -78,7 +78,7 @@ namespace EchoPlayApi
             // Настройка маршрутов хабов SignalR
             //app.MapHub<RoomHub>("/roomHub");
             app.MapHub<ChatHub>("/chatHub");
-            app.MapHub<WebRtcHub>("/WebRTCHub");
+            app.MapHub<WebRtcHub>("/webRTCHub");
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

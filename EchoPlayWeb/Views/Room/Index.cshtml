@@ -107,7 +107,7 @@
         .build();
 
     const webRtcConnection = new signalR.HubConnectionBuilder()
-        .withUrl(`${serverUrl}/WebRTCHub`)
+        .withUrl(`${serverUrl}/webRTCHub`)
         .withAutomaticReconnect()
         .configureLogging(signalR.LogLevel.Warning)
         .build();
