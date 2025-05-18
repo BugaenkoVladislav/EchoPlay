@@ -2,7 +2,39 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container text-center mt-5">
+    <h1 class="display-4 text-primary">Welcome in EchoPlay</h1>
+
+    <!-- Форма для ввода RoomId -->
+    <form method="post" asp-controller="Home" asp-action="JoinRoom" class="mt-4">
+        <div class="form-group">
+            <label for="roomId" class="h5">Enter a room name:</label>
+            <input type="text" class="form-control form-control-lg" id="roomId" name="roomId" required placeholder="Enter a room name" />
+        </div>
+        <button type="submit" class="btn btn-success btn-lg mt-3">Join Room</button>
+    </form>
 </div>
+
+<style>
+    .container {
+        max-width: 600px;
+    }
+
+    .btn-lg {
+        font-size: 1.25rem;
+        padding: 10px 20px;
+    }
+
+    .display-4 {
+        font-size: 3rem;
+    }
+
+    .form-control {
+        font-size: 1.125rem;
+        padding: 10px;
+    }
+
+    .h5 {
+        font-size: 1.25rem;
+    }
+</style>

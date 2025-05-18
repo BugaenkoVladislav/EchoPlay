@@ -31,10 +31,11 @@ public class Program
             {
                 options.DefaultScheme = "CookieScheme";
                 options.DefaultSignInScheme = "CookieScheme";
-                options.DefaultChallengeScheme =GoogleOpenIdConnectDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = GoogleOpenIdConnectDefaults.AuthenticationScheme;
             })
             .AddCookie("CookieScheme", options =>
             {
+                options.LoginPath = "/Account/Login";
                 options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
                 options.SlidingExpiration = true;
             }).AddGoogleOpenIdConnect(options =>
@@ -42,10 +43,6 @@ public class Program
                 options.ClientId = googleSettings.ClientId;
                 options.ClientSecret = googleSettings.ClientSecret;
                 options.CallbackPath = "/signin-google";
-            })
-            .AddJwtBearer(options =>
-            {
-                // Configure JWT authentication
             });
 
         builder.Services.AddAuthorization();
