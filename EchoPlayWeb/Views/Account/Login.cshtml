@@ -9,26 +9,26 @@
 
 <div class="signin-container">
     <div class="signin-card">
-        <h2 class="signin-title">Sign In</h2>
+        <h2 class="signin-title">Вход</h2>
 
         <form asp-controller="Account" asp-action="Identify" method="post" class="signin-form">
-            <label for="Email">Email or Username</label>
+            <label for="Email">Введите почту или имя пользователя</label>
             <input type="text" name="Email" id="Email" required />
 
-            <label for="Password">Password</label>
+            <label for="Password">Пароль</label>
             <input type="password" name="Password" id="Password" required />
 
-            <input type="submit" value="Enter" class="btn primary-btn" />
+            <input type="submit" value="Вход" class="btn primary-btn" />
         </form>
 
-        <div class="divider">or</div>
+        <div class="divider">или</div>
 
         <form asp-controller="Account" asp-action="LoginGoogle" method="post" class="signin-form">
-            <input type="submit" value="Sign in with Google" class="btn google-btn" />
+            <input type="submit" value="Войти используя Google" class="btn google-btn" />
         </form>
 
         <div class="signup-link">
-            <a asp-controller="Account" asp-action="SignUp">Don't have an account? Sign Up</a>
+            <a asp-controller="Account" asp-action="SignUp">Нет аккаунта? Зарегистрироваться</a>
         </div>
     </div>
 </div>

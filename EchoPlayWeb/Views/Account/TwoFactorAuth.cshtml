@@ -20,17 +20,17 @@
 
 <div class="signin-container">
     <div class="signin-card">
-        <h2 class="signin-title">Two-Factor Authentication</h2>
+        <h2 class="signin-title">Двухфакторная аутентификация</h2>
 
         <form asp-controller="Account" asp-action="LoginCookie" method="post" class="signin-form">
             <input type="hidden" name="Email" value="@email" />
             <input type="hidden" name="Password" value="@password" />
             <input type="hidden" name="isSignUp" value="@(isSignUp ?? false)" />
 
-            <label for="code">Verification Code</label>
+            <label for="code">Подтвердите код</label>
             <input type="number" name="code" id="code" required />
 
-            <input type="submit" value="Verify" class="btn primary-btn" />
+            <input type="submit" value="Подтвердить" class="btn primary-btn" />
         </form>
     </div>
 </div>
