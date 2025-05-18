@@ -22,5 +22,9 @@
     <ItemGroup>
       <ProjectReference Include="..\App.EchoPlay\App.EchoPlay.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="wwwroot\images\avatars\" />
+    </ItemGroup>
 </Project>
 
