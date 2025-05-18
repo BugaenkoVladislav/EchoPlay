@@ -8,7 +8,6 @@ public static class InfrastructureExt
     public static void AddRepos(this IServiceCollection services)
     {
         services.AddScoped<UserRepository>();
-        services.AddScoped<MessageRepository>();
         services.AddScoped<CodeRepository>();
         services.AddScoped<TmpUserRepository>();
     }

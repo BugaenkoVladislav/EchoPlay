@@ -42,11 +42,16 @@ namespace Infrastructure.EchoPlay.Migrations
                     b.ToTable("Codes");
                 });
 
-            modelBuilder.Entity("Domain.EchoPlay.Entities.User", b =>
+            modelBuilder.Entity("Domain.EchoPlay.Entities.TmpUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -55,9 +60,6 @@ namespace Infrastructure.EchoPlay.Migrations
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -68,19 +70,33 @@ namespace Infrastructure.EchoPlay.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("TmpUsers");
+
+                    b.HasDiscriminator().HasValue("TmpUser");
+
+                    b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("Domain.EchoPlay.Entities.User", b =>
+                {
+                    b.HasBaseType("Domain.EchoPlay.Entities.TmpUser");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasIndex("Phone")
                         .IsUnique()
                         .HasFilter("[Phone] IS NOT NULL");
 
-                    b.HasIndex("Username")
-                        .IsUnique();
-
-                    b.ToTable("Users");
+                    b.HasDiscriminator().HasValue("User");
                 });
 
             modelBuilder.Entity("Domain.EchoPlay.Entities.Code", b =>
                 {
-                    b.HasOne("Domain.EchoPlay.Entities.User", "User")
+                    b.HasOne("Domain.EchoPlay.Entities.TmpUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)

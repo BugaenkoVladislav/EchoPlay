@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
-using System.Reflection.Metadata;
 using Microsoft.AspNetCore.SignalR;
+
+namespace Infrastructure.EchoPlay.Hubs;
 
 public class WebRtcHub : Hub
 {
@@ -8,31 +9,25 @@ public class WebRtcHub : Hub
 
     public async Task SendSignal(string groupName, string senderId, string signalType, object data)
     {
-        await Clients.GroupExcept(groupName, Context.ConnectionId)
-            .SendAsync("ReceiveSignal", senderId, signalType, data);
+        await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("ReceiveSignal", senderId, signalType, data);
     }
 
     public async Task JoinGroup(string groupName)
     {
         var userId = Context.ConnectionId;
-        AddUserToGroup(groupName, userId);
+        WebRtcConnectionManager.AddUserToGroup(groupName, userId);
         await Groups.AddToGroupAsync(userId, groupName);
 
-        var existingUsers = GetUsersInGroup(groupName)
-            .Where(u => u != userId)
-            .ToList();
+        var existingUsers = WebRtcConnectionManager.GetUsersInGroup(groupName).Where(u => u != userId).ToList();
         await Clients.Caller.SendAsync("ExistingUsers", existingUsers);
-        
-        await Clients.GroupExcept(groupName, userId)
-            .SendAsync("UserJoined", userId);
-
+        await Clients.GroupExcept(groupName, userId).SendAsync("UserJoined", userId);
         await Clients.Group(groupName).SendAsync("Notify", $"{userId} присоединился к группе {groupName}.");
     }
 
     public async Task LeaveGroup(string groupName)
     {
         var userId = Context.ConnectionId;
-        RemoveUserFromGroup(groupName, userId);
+        WebRtcConnectionManager.RemoveUserFromGroup(groupName, userId);
         await Groups.RemoveFromGroupAsync(userId, groupName);
 
         await Clients.Group(groupName).SendAsync("UserLeft", userId);
@@ -51,32 +46,13 @@ public class WebRtcHub : Hub
 
         await base.OnDisconnectedAsync(exception);
     }
-
-    private void AddUserToGroup(string groupName, string userId)
-    {
-        var compositeKey = $"{groupName}_{userId}";
-        _users.TryAdd(compositeKey, userId);
-    }
-
-    private void RemoveUserFromGroup(string groupName, string userId)
-    {
-        var compositeKey = $"{groupName}_{userId}";
-        _users.TryRemove(compositeKey, out _);
-    }
-
-    private List<string> GetUsersInGroup(string groupName)
-    {
-        return _users.Where(u => u.Key.StartsWith($"{groupName}_"))
-            .Select(u => u.Value)
-            .ToList();
-    }
 }
 
 internal static class WebRtcConnectionManager
 {
     private static ConcurrentDictionary<string, string> _users = new();
 
-    public static void AddUserInGroup(string groupName, string userId)
+    public static void AddUserToGroup(string groupName, string userId)
     {
         var compositeKey = $"{groupName}_{userId}";
         _users.TryAdd(compositeKey, userId);
@@ -88,16 +64,10 @@ internal static class WebRtcConnectionManager
         _users.TryRemove(compositeKey, out _);
     }
 
-    public static List<string> GetUsersFromGroup(string groupName)
+    public static List<string> GetUsersInGroup(string groupName)
     {
-        return (from kvp in _users
-            where kvp.Key.StartsWith($"{groupName}_")
-            select kvp.Key.Substring(groupName.Length + 1)).ToList();
-    }
-
-    public static bool IsUserInGroup(string groupName, string userId)
-    {
-        var compositeKey = $"{groupName}_{userId}";
-        return _users.ContainsKey(compositeKey);
+        return _users.Where(u => u.Key.StartsWith($"{groupName}_"))
+            .Select(u => u.Value)
+            .ToList();
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.EchoPlay.Repositories;
 
-public class TmpUserRepository(DbContext dbContext) : BaseRepository<TmpUser>(dbContext)
+public class TmpUserRepository(MyDbContext dbContext) : BaseRepository<TmpUser>(dbContext)
 
 {
     
