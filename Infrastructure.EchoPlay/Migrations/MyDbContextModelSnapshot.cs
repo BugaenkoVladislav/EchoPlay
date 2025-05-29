@@ -87,6 +87,9 @@ namespace Infrastructure.EchoPlay.Migrations
                     b.Property<string>("Phone")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("PhotoPath")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasIndex("Phone")
                         .IsUnique()
                         .HasFilter("[Phone] IS NOT NULL");

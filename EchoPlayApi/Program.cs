@@ -26,6 +26,7 @@ namespace EchoPlayApi
             builder.Services.AddScoped<AuthenticationCreator>();
             builder.Services.AddRepos();
             builder.Services.AddScoped<UnitOfWork>();
+            builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<AuthService>();
 
             // Регистрируем зависимость для IAuthentication<User>

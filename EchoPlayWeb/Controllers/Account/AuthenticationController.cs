@@ -16,7 +16,7 @@ public class AccountController(IHttpClientFactory httpClientFactory,Authenticati
 {
     private readonly AuthenticationCreator _authenticationCreator = authenticationCreator;
     private IAuthentication<User> _authentication;
-    private readonly HttpClient _authHttpClient = httpClientFactory.CreateClient("AuthApi");
+    private readonly HttpClient _authHttpClient = httpClientFactory.CreateClient("Api");
 
     [HttpGet]
     public IActionResult Login() => View();

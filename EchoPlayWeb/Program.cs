@@ -21,7 +21,7 @@ public class Program
         builder.Services.AddScoped<IAuthentication<User>, JwtAuthentication>();     
         builder.Services.AddScoped<IAuthentication<User>, CookieAuthentication>();
 
-        builder.Services.AddHttpClient("AuthApi", client =>
+        builder.Services.AddHttpClient("Api", client =>
         {
             client.BaseAddress = new Uri("https://localhost:7222/");
         });

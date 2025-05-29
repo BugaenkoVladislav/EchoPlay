@@ -78,7 +78,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.3);
     color: white;
     padding: 8px;
     font-size: 14px;
@@ -241,6 +241,13 @@ body {
 .user-info {
     font-size: 0.9em;
     color: #555;
+}
+.user-avatar {
+    display: block;
+    width: 100%;      /* Занимает всю ширину родителя */
+    height: 100%;     /* Занимает всю высоту родителя */
+    object-fit: cover; /* Кадрирование без искажений */
+    object-position: center; /* Центрирование изображения */
 }
 
 .chat-box {

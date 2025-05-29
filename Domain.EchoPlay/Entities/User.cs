@@ -8,4 +8,6 @@ namespace Domain.EchoPlay.Entities;
 public class User:TmpUser
 {
     public string? Phone { get; set; } = null;
+    
+    public string? PhotoPath { get; set; } = null;
 }

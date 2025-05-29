@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Групповая видеоконференция";
     var username = User.FindFirst(ClaimTypes.Name)?.Value;
- 
+    var userMail = User.FindFirst(ClaimTypes.Email)?.Value;
 }
 <link rel="stylesheet" href="~/css/room.css" />
 <div class="app-container">
@@ -264,6 +264,7 @@
         updateLocalMicIndicator();
         
         try {
+            debugger
             await webRtcConnection.invoke("SendMicrophoneState", roomId, appState.currentUserId, !enable);
         } catch (err) {
             console.error('Ошибка отправки состояния микрофона:', err);
@@ -290,7 +291,7 @@
             appState.isBroadcasting = true;
             elements.stopBroadcastBtn.disabled = false;
             
-            await webRtcConnection.invoke("JoinGroup", roomId);
+            await webRtcConnection.invoke("JoinGroup", roomId, currentUser);
             addSystemMessage('Вы подключились к аудиоконференции');
             
             // Добавляем индикатор для локального микрофона
@@ -439,7 +440,7 @@
         }
     }
 
-    function addRemoteVideo(userId, stream) {
+    async function addRemoteVideo(userId, stream) {
         const existingVideo = document.getElementById(`remoteVideo-${userId}`);
         if (existingVideo) {
             existingVideo.srcObject = stream;
@@ -455,19 +456,61 @@
         video.autoplay = true;
         video.playsInline = true;
         video.srcObject = stream;
-        
-        const userIdLabel = document.createElement('div');
-        userIdLabel.className = 'remote-user-id';
-        userIdLabel.textContent = currentUser;
-        
+
         const micIndicator = document.createElement('div');
         micIndicator.className = 'mic-state-indicator';
         micIndicator.textContent = '🎤';
         
-        videoContainer.appendChild(video);
+        const userIdLabel = document.createElement('div');
+        userIdLabel.className = 'remote-user-id';
+        const userName = await webRtcConnection.invoke("GetUsername", userId);
+        userIdLabel.textContent = userName;
+        getUserPhoto(userName).then(photo => {
+            if (photo) {
+                console.log("Фото получено:", photo);
+                const img = document.createElement('img');
+                img.src = photo;
+                img.className = 'user-avatar';
+                videoContainer.appendChild(img);
+                document.getElementById("user-avatar").src = photo;
+            } else {
+                console.log("Фото не найдено");
+                videoContainer.appendChild(video);
+            }
+        });
+        
         videoContainer.appendChild(userIdLabel);
         videoContainer.appendChild(micIndicator);
         elements.remoteVideosContainer.appendChild(videoContainer);
+    }
+    async function getUserPhoto(username) {
+        try {
+            const response = await fetch(`/Room/GetUserPhoto?username=${encodeURIComponent(username)}`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Ошибка: ${response.status}`);
+            }
+            
+            const contentType = response.headers.get('Content-Type');
+
+            if (contentType.includes('application/json')) {
+                const jsonData = await response.json();
+                console.log("Server response:", jsonData);
+                
+                return jsonData; 
+                
+            } else if (contentType.includes('image/')) {
+                const photoData = await response.blob();
+                return URL.createObjectURL(photoData);
+            } else {
+                throw new Error("Неизвестный формат ответа");
+            }
+        } catch (error) {
+            console.error("Не удалось загрузить фото:", error);
+            return null;
+        }
     }
 
     function removePeerConnection(userId) {
@@ -667,7 +710,7 @@
                 addSystemMessage(`Соединение с ${connectionName} восстановлено`);
                 
                 if (connection === webRtcConnection && appState.isBroadcasting) {
-                    webRtcConnection.invoke("JoinGroup", roomId).catch(err => {
+                    webRtcConnection.invoke("JoinGroup", roomId,currentUser).catch(err => {
                         console.error("Ошибка повторного присоединения к группе:", err);
                     });
                 }
