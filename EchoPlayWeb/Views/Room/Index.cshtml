@@ -685,7 +685,6 @@
 
         webRtcConnection.on("UserLeft", (userId) => {
             removePeerConnection(userId);
-            addSystemMessage(`Пользователь ${userId} покинул конференцию`);
         });
 
         webRtcConnection.on("ReceiveMicrophoneState", (userId, isMuted) => {
