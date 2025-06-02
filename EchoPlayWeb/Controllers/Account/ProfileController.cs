@@ -61,7 +61,7 @@ public class ProfileController(IHttpClientFactory httpClientFactory) : Controlle
                {
                    return RedirectToAction("LogoutCookie","Account");
                }
-               return BadRequest("Что то пошло не так");
+               return BadRequest("Такое имя пользователя уже есть в Базе");
                 
             }
             return BadRequest("Не правильный пароль");
