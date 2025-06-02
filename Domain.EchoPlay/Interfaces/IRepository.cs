@@ -9,5 +9,5 @@ public interface IRepository<TEntity>
     Task<List<TEntity>?> GetEntitiesAsync(Expression<Func<TEntity, bool>> expression);
     Task AddNewEntityAsync(TEntity entity);
     Task DeleteEntityAsync(TEntity entity);
-    Task UpdateEntityFromExpressionAsync(TEntity entity);
+    Task UpdateEntityAsync(TEntity entity);
 }

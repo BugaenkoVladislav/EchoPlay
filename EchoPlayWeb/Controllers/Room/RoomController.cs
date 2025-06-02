@@ -32,19 +32,4 @@ public class RoomController(IHttpClientFactory httpClientFactory) : Controller
         var photoUrl = await responsePhoto.Content.ReadAsStringAsync();
         return new Uri(photoUrl);
     }
-    
-    public async Task AddUserPhoto(string username,string photo)
-    {
-        var response = await _userHttpClient.GetAsync($"api/User/get-user-id/{username}");
-        var userId = await response.Content.ReadAsStringAsync();
-        var usernamePhoto = new UsernamePhotoDto()
-        {
-            PhotoPath = photo,
-            UserId = Guid.Parse(userId)
-        };
-        var json = JsonConvert.SerializeObject(usernamePhoto);
-        var content = new StringContent(json);
-        await _userHttpClient.PostAsync("api/User/add-photo",content);
-    }
-    
 }

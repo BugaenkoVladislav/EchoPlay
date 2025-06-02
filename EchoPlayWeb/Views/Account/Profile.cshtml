@@ -1,0 +1,102 @@
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Профиль пользователя";
+    var userPhoto = User.FindFirst(ClaimTypes.Actor)?.Value;
+    bool isGoogleUser = false;
+    if (!string.IsNullOrEmpty(userPhoto))
+    {
+        isGoogleUser = userPhoto.Contains("google");
+    }
+    var username = User.FindFirst(ClaimTypes.Name)?.Value;
+    
+}
+
+<style>
+    .profile-container {
+        max-width: 400px;
+        margin: 50px auto;
+        text-align: center;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        background-color: #f9f9f9;
+    }
+    .profile-image {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 20px;
+    }
+    .form-group {
+        margin-bottom: 15px;
+        text-align: left;
+    }
+    label {
+        font-weight: bold;
+    }
+    input[type="text"],
+    input[type="password"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: @(isGoogleUser ? "#eee" : "#fff");
+    }
+    input:disabled, input[readonly] {
+        cursor: not-allowed;
+    }
+    button {
+        padding: 10px 20px;
+        margin-top: 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    button:hover:enabled {
+        background-color: #0056b3;
+    }
+    .logout-button {
+        background-color: #dc3545;
+        margin-top: 20px;
+    }
+</style>
+
+<div class="profile-container">
+    <img src="@userPhoto" onerror="this.src='/images/default-avatar.jpg'" alt="Profile Photo" class="profile-image" />
+
+    <form asp-action="UpdateProfile" method="post">
+        <div class="form-group">
+            <label for="Username">Имя пользователя</label>
+            <input type="text" id="Username" name="Username" value="@username" @(isGoogleUser ? "readonly" : "") />
+        </div>
+
+        <hr />
+        <div class="form-group">
+            <label for="UrlPhoto">Ссылка на фото профиля</label>
+            <input type="text" id="UrlPhoto" name="UrlPhoto" value="@Model.UrlPhoto" @(isGoogleUser ? "readonly" : "") />
+        </div>
+
+        <div class="form-group">
+            <label for="OldPassword">Старый пароль</label>
+            <input type="password" id="OldPassword" name="OldPassword" @(isGoogleUser ? "disabled" : "") />
+        </div>
+        <div class="form-group">
+            <label for="NewPassword">Новый пароль</label>
+            <input type="password" id="NewPassword" name="NewPassword" @(isGoogleUser ? "disabled" : "") />
+        </div>
+        <div class="form-group">
+            <label for="ConfirmNewPassword">Подтвердите новый пароль</label>
+            <input type="password" id="ConfirmNewPassword" name="ConfirmNewPassword" @(isGoogleUser ? "disabled" : "") />
+        </div>
+        <input type="hidden" id="OldUsername" name="OldUsername" value="@username"/>
+        <button type="submit" @(isGoogleUser ? "disabled" : "")>Сохранить изменения</button>
+    </form>
+
+    <form asp-controller="Account" asp-action="LogoutCookie" method="post">
+        <button type="submit" class="logout-button">Выйти</button>
+    </form>
+</div>

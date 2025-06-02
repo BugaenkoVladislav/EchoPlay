@@ -13,11 +13,16 @@ public class CookieAuthentication(IHttpContextAccessor accessor) : BaseAuthentic
         var claims = new List<Claim> { 
             new (ClaimTypes.Email, userData.Email), 
             new (ClaimTypes.Name, userData.Username)};
+        if (!string.IsNullOrEmpty(userData.PhotoPath))
+        {
+            claims.Add(new (ClaimTypes.Actor, userData.PhotoPath));
+        }
+        
         var claimsIdentity = new ClaimsIdentity(claims, "CookieAuth");
         await _accessor.HttpContext.SignInAsync("CookieScheme", new ClaimsPrincipal(claimsIdentity));
     }
 
-    public  async Task UnauthenticateAsync(User userData)
+    public  async Task UnauthenticateAsync()
     {
         await _accessor.HttpContext.SignOutAsync("CookieScheme");
     }

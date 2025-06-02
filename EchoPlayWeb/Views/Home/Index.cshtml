@@ -1,11 +1,19 @@
-﻿@{
+﻿@using System.Security.Claims
+@{
     ViewData["Title"] = "Home Page";
+    var userPhoto = User.FindFirst(ClaimTypes.Actor)?.Value;
 }
-
+<div class="user-profile">
+    <div class="profile-image-container">
+        <img id="profileImage" src="@userPhoto" alt="Profile" />
+        <div class="profile-overlay">
+            <a href="@Url.Action("Index", "Profile")" class="edit-link">Edit</a>
+        </div>
+    </div>
+</div>
 <div class="container text-center mt-5">
     <h1 class="display-4 text-primary">Добро пожаловать в EchoPlay</h1>
-
-    <!-- Форма для ввода RoomId -->
+    
     <form method="post" asp-controller="Home" asp-action="JoinRoom" class="mt-4">
         <div class="form-group">
             <label for="roomId" class="h5">Введите название комнаты:</label>
@@ -36,5 +44,53 @@
 
     .h5 {
         font-size: 1.25rem;
+    }
+    .user-profile {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+
+    .profile-image-container {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid #fff;
+        box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+
+    .profile-image-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .profile-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .profile-image-container:hover .profile-overlay {
+        opacity: 1;
+    }
+
+    .edit-link {
+        color: white;
+        text-decoration: none;
+        font-size: 12px;
+        text-align: center;
     }
 </style>

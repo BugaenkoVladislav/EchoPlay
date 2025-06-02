@@ -29,7 +29,7 @@ public class BaseRepository<TEntity>(DbContext dbContext) : IRepository<TEntity>
         await Task.Run(() => dbContext.Set<TEntity>().Remove(entity));
     }
 
-    public virtual async Task UpdateEntityFromExpressionAsync(TEntity entity)
+    public virtual async Task UpdateEntityAsync(TEntity entity)
     {
         await Task.Run(() => dbContext.Set<TEntity>().Update(entity));
     }

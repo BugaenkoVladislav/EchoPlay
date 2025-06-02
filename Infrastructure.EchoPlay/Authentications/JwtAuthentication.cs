@@ -17,7 +17,7 @@ public class JwtAuthentication(IHttpContextAccessor accessor) : BaseAuthenticati
         return Task.FromResult("");
     }
 
-    public Task UnauthenticateAsync(User userData)
+    public Task UnauthenticateAsync()
     {
         throw new NotImplementedException();
     }

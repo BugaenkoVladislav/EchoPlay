@@ -1,5 +1,6 @@
 using App.EchoPlay.Dtos;
 using App.EchoPlay.Services;
+using Domain.EchoPlay.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,12 +11,7 @@ namespace EchoPlayApi.Controllers
     public class UserController(UserService userService) : ControllerBase
     {
         private readonly UserService _userService = userService;
-        [HttpPost("add-photo")]
-        public async Task AddUserPhotoAsync([FromBody] UsernamePhotoDto dto)
-        {
-            
-           await _userService.AddUserPhoto(dto.UserId, dto.PhotoPath); 
-        }
+
         [HttpPost("get-photo")]
         public async Task<string> GetPhotoAsync([FromQuery]string userId)
         {
@@ -30,5 +26,12 @@ namespace EchoPlayApi.Controllers
         {
             return await _userService.GetUserId(username);
         }
+
+        [HttpPut("update-profile")]
+        public async Task UpdateUser([FromBody] User user)
+        {
+            await _userService.UpdateUser(user);
+        }
+        
     }
 }

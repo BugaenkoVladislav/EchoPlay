@@ -122,23 +122,13 @@ public class AccountController(IHttpClientFactory httpClientFactory,Authenticati
         }
     }
 
-    [HttpPost]
-    public async Task<IActionResult> LogoutCookie(LoginPasswordViewModel model)
+    [HttpGet]
+    public async Task<IActionResult> LogoutCookie()
     {
         try
         {
-            var response = await _authHttpClient.PostAsJsonAsync("api/Authentication/unauthenticate", new AuthDto()
-            {
-                UserData = new LoginPasswordDto()
-                {
-                    Email = model.Email,
-                    Password = model.Password
-                }
-            });
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception(await response.Content.ReadAsStringAsync());
-            }
+            _authentication = _authenticationCreator.Create(AuthType.Cookie);
+            await _authentication.UnauthenticateAsync();
             return RedirectToAction("Login");
         }
         catch (Exception ex)
@@ -160,7 +150,7 @@ public class AccountController(IHttpClientFactory httpClientFactory,Authenticati
             {
                 RedirectUri = "/Account/GoogleCallback" 
             };
-
+            
             return Challenge(authProperties, GoogleOpenIdConnectDefaults.AuthenticationScheme);
         }
         catch (Exception ex)
@@ -182,11 +172,12 @@ public class AccountController(IHttpClientFactory httpClientFactory,Authenticati
         IDictionary<string,string> claimsDict = new Dictionary<string,string>();
         var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
         var username = claims.FirstOrDefault(c => c.Type == "name")?.Value;
-        
+        var picture = claims.FirstOrDefault(c => c.Type == "picture")?.Value;
         var user = new User()
         {
             Email = email,
-            Username = username
+            Username = username,
+            PhotoPath = picture
         };
         
         _authentication = _authenticationCreator.Create(AuthType.Cookie);
@@ -197,4 +188,5 @@ public class AccountController(IHttpClientFactory httpClientFactory,Authenticati
 
     
     #endregion
+    
 }

@@ -6,6 +6,6 @@ public interface IAuthentication<in TUserData>
 {
     Task AuthenticateAsync(TUserData userData);
     
-    Task UnauthenticateAsync(TUserData userData);
+    Task UnauthenticateAsync();
 
 }

@@ -59,14 +59,14 @@ namespace EchoPlayApi.Controllers
             await _authService.SendCodeOnEmail(UserMappers.MapFromSignUpDto(dto));
             return Ok();
         }
-
-        [HttpPost("unauthenticate")]
-        public async Task<IActionResult> Unauthenticate([FromBody] AuthDto dto)
+        
+        [HttpPost("get-user")]
+        public async Task<IActionResult> GetUser([FromBody] LoginPasswordDto dto)
         {
             try
             {
-                var user  = await _authService.GetUserAsync(dto.UserData.Email, dto.UserData.Password);
-                return Ok();
+                var user = await _authService.GetUserAsync(dto.Email,dto.Password);
+                return Ok(user);
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
 
+using Domain.EchoPlay.Entities;
 using Infrastructure.EchoPlay;
 
 namespace App.EchoPlay.Services;
@@ -6,14 +7,7 @@ namespace App.EchoPlay.Services;
 public class UserService(UnitOfWork uow)
 {
     private readonly UnitOfWork _uow = uow;
-
-    public async Task AddUserPhoto(Guid userId, string photo)
-    {
-        var user = await _uow.UserRepository.GetEntityFirstAsync(x => x.Id == userId);
-        user.PhotoPath = photo;
-        await _uow.UserRepository.UpdateEntityFromExpressionAsync(user);
-    }
-
+    
     public async Task<string> GetUserPhoto(Guid userId)
     {
         var user = await _uow.UserRepository.GetEntityFirstAsync(x => x.Id == userId);
@@ -24,5 +18,11 @@ public class UserService(UnitOfWork uow)
     {
         var user = await _uow.UserRepository.GetEntityFirstAsync(x => x.Username == username || x.Email == username);
         return user.Id;
+    }
+
+    public async Task UpdateUser(User user)
+    {
+        await _uow.UserRepository.UpdateEntityAsync(user);
+        await _uow.SaveChangesAsync();
     }
 }
